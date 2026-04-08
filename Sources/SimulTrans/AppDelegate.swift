@@ -10,8 +10,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isTranslatingPartial = false
     private var pendingTranslation = false
     private var latestRecognitionUpdate: RecognitionUpdate?
+    private var liveRecognitionText: String = ""
+    private var liveDisplayRevision: Int = 0
     private var provisionalEntryIndex: Int?
     private var provisionalSnapshotText: String = ""
+    private let liveSegmentDebouncer = Debouncer(delay: 1.0)
 
     let appState = AppState()
     let audioRecognizer = SystemAudioRecognizer()
@@ -37,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingView = NSHostingView(rootView: controlView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 760),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -54,8 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func startTranslation() {
         appState.updateTranslationConfig()
         latestRecognitionUpdate = nil
+        liveRecognitionText = ""
+        liveDisplayRevision = 0
         provisionalEntryIndex = nil
         provisionalSnapshotText = ""
+        appState.isRunning = true
+        appState.errorMessage = nil
+        appState.resetRecognitionDebug(keepHistory: false)
+        appState.recognitionPhase = "listening"
 
         audioRecognizer.onResult = { [weak self] update in
             guard let self else { return }
@@ -73,37 +82,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.appState.errorMessage = error
         }
 
-        audioRecognizer.onUtteranceBoundary = { [weak self] in
-            self?.commitCurrentLiveSegmentAsProvisional()
-        }
+        audioRecognizer.onUtteranceBoundary = nil
 
         let sourceLocale = Locale(identifier: appState.sourceLanguage.minimalIdentifier)
         let source: SystemAudioRecognizer.AudioSource = appState.audioSource == .microphone ? .microphone : .system
         audioRecognizer.start(locale: sourceLocale, source: source)
-        appState.isRunning = true
-        appState.errorMessage = nil
         showOverlay()
     }
 
     func stopTranslation() {
         // Save any remaining text
         if !appState.currentOriginalText.isEmpty {
-            finalizeLiveEntry(text: appState.currentOriginalText)
+            finalizeLiveEntry(text: appState.currentOriginalText, recognitionText: liveRecognitionText)
         }
 
         isTranslatingPartial = false
         pendingTranslation = false
         latestRecognitionUpdate = nil
+        liveRecognitionText = ""
+        liveDisplayRevision = 0
         provisionalEntryIndex = nil
         provisionalSnapshotText = ""
         audioRecognizer.stop()
         appState.isRunning = false
+        appState.recognitionPhase = "stopped"
     }
 
     func clearTranscript() {
         appState.transcriptEntries.removeAll()
         appState.currentOriginalText = ""
         appState.currentTranslatedText = ""
+        liveRecognitionText = ""
+        liveDisplayRevision = 0
+        provisionalEntryIndex = nil
+        provisionalSnapshotText = ""
+        appState.resetRecognitionDebug(keepHistory: false)
     }
 
     func exportTranscript() {
@@ -163,7 +176,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pendingTranslation = false
 
         Task { @MainActor in
-            let textToTranslate = self.appState.currentOriginalText
+            let textToTranslate = self.liveRecognitionText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !textToTranslate.isEmpty else {
                 self.isTranslatingPartial = false
                 return
@@ -189,22 +202,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                     translated: translated?.isEmpty == false ? translated : nil)
     }
 
-    private func finalizeLiveEntry(text: String) {
+    private func finalizeLiveEntry(text: String, recognitionText: String? = nil) {
         isTranslatingPartial = false
         pendingTranslation = false
 
         guard let entryIndex = appendHistoryEntry(text: text, translated: appState.currentTranslatedText) else {
             return
         }
-        appState.currentOriginalText = ""
-        appState.currentTranslatedText = ""
+        clearLiveEntry()
 
+        let entryID = appState.transcriptEntries[entryIndex].id
         let sourceText = appState.transcriptEntries[entryIndex].originalText
         print("[SimulTrans] Saved entry #\(entryIndex + 1): \(sourceText.prefix(30))...")
-        requestEntryTranslation(index: entryIndex, sourceText: sourceText)
+        let translationSource = recognitionText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        requestEntryTranslation(index: entryIndex,
+                                entryID: entryID,
+                                sourceText: (translationSource?.isEmpty == false ? translationSource! : sourceText))
     }
 
-    private func commitCurrentLiveSegmentAsProvisional() {
+    private func commitCurrentLiveSegmentAsProvisional(snapshotText: String? = nil) {
         let liveText = appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !liveText.isEmpty, provisionalEntryIndex == nil else { return }
 
@@ -215,50 +231,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         provisionalEntryIndex = entryIndex
-        provisionalSnapshotText = latestRecognitionUpdate?.text ?? liveText
-        appState.currentOriginalText = ""
-        appState.currentTranslatedText = ""
+        let snapshot = snapshotText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackSnapshot = liveRecognitionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        provisionalSnapshotText = snapshot?.isEmpty == false ? snapshot! : fallbackSnapshot
+        clearLiveEntry()
 
+        let entryID = appState.transcriptEntries[entryIndex].id
         let sourceText = appState.transcriptEntries[entryIndex].originalText
         print("[SimulTrans] Provisional entry #\(entryIndex + 1): \(sourceText.prefix(30))...")
-        requestEntryTranslation(index: entryIndex, sourceText: sourceText)
+        let translationSource = provisionalSnapshotText.isEmpty ? sourceText : provisionalSnapshotText
+        requestEntryTranslation(index: entryIndex, entryID: entryID, sourceText: translationSource)
     }
 
     private func handlePartialRecognitionUpdate(_ update: RecognitionUpdate, previousUpdate: RecognitionUpdate?) {
         let fullText = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !fullText.isEmpty else {
-            appState.currentOriginalText = ""
-            appState.currentTranslatedText = ""
+        guard !fullText.isEmpty else { return }
+        updateDebugSurface(rawText: fullText, phase: "partial")
+
+        if shouldCommitExistingLiveEntry(currentUpdate: update, previousUpdate: previousUpdate) {
+            commitCurrentLiveSegmentAsProvisional(snapshotText: liveRecognitionText.isEmpty ? previousUpdate?.text : liveRecognitionText)
+        }
+
+        let candidateText = effectiveIncomingText(from: fullText)
+        guard !candidateText.isEmpty else {
+            appState.effectiveRecognitionText = ""
+            recordDebugSnapshot(phase: "partial", rawText: fullText, effectiveText: "")
             return
         }
 
-        if let currentProvisionalEntryIndex = provisionalEntryIndex {
-            if !provisionalSnapshotText.isEmpty, update.text.hasPrefix(provisionalSnapshotText) {
-                let suffix = String(update.text.dropFirst(provisionalSnapshotText.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-                appState.currentOriginalText = suffix
-                requestLiveTranslationIfNeeded(suffix)
-                return
-            }
-
-            if looksLikeSameUtterance(previous: provisionalSnapshotText, current: update.text) {
-                updateProvisionalEntry(index: currentProvisionalEntryIndex, text: fullText)
-                provisionalSnapshotText = update.text
-                appState.currentOriginalText = ""
-                appState.currentTranslatedText = ""
-                requestEntryTranslation(index: currentProvisionalEntryIndex, sourceText: fullText)
-                return
-            }
-
-            provisionalEntryIndex = nil
-            provisionalSnapshotText = ""
-        }
-
-        if shouldCommitExistingLiveEntry(beforeShowing: fullText, currentUpdate: update, previousUpdate: previousUpdate) {
-            finalizeLiveEntry(text: appState.currentOriginalText)
-        }
-
-        appState.currentOriginalText = fullText
-        requestLiveTranslationIfNeeded(fullText)
+        let fragmentToAppend = appendableSuffix(existing: appState.currentOriginalText, incoming: candidateText)
+        appendLiveOriginalText(fragmentToAppend, fallbackText: candidateText)
+        requestLiveTranslationIfNeeded(candidateText)
+        appState.effectiveRecognitionText = candidateText
+        recordDebugSnapshot(phase: "partial", rawText: fullText, effectiveText: candidateText)
+        scheduleStableLiveCommitIfNeeded()
     }
 
     private func handleFinalRecognitionUpdate(_ update: RecognitionUpdate) {
@@ -266,37 +272,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !finalText.isEmpty else {
             provisionalEntryIndex = nil
             provisionalSnapshotText = ""
-            appState.currentOriginalText = ""
-            appState.currentTranslatedText = ""
+            clearLiveEntry()
+            appState.recognitionPhase = "listening"
             return
         }
+        updateDebugSurface(rawText: finalText, phase: "final")
 
-        if let provisionalEntryIndex {
-            updateProvisionalEntry(index: provisionalEntryIndex, text: finalText)
-            requestEntryTranslation(index: provisionalEntryIndex, sourceText: finalText)
-        } else {
-            finalizeLiveEntry(text: finalText)
+        let entryToRefresh: (index: Int, entryID: UUID)? = {
+            guard let provisionalEntryIndex, provisionalEntryIndex < appState.transcriptEntries.count else { return nil }
+            return (provisionalEntryIndex, appState.transcriptEntries[provisionalEntryIndex].id)
+        }()
+
+        let finalCandidateText = effectiveIncomingText(from: finalText)
+        if !finalCandidateText.isEmpty {
+            let fragmentToAppend = appendableSuffix(existing: appState.currentOriginalText, incoming: finalCandidateText)
+            appendLiveOriginalText(fragmentToAppend, fallbackText: finalCandidateText)
+            liveRecognitionText = finalCandidateText
+            appState.effectiveRecognitionText = finalCandidateText
+            recordDebugSnapshot(phase: "final", rawText: finalText, effectiveText: finalCandidateText)
+        } else if let entryToRefresh {
+            requestEntryTranslation(index: entryToRefresh.index, entryID: entryToRefresh.entryID, sourceText: finalText)
+            appState.effectiveRecognitionText = ""
+            recordDebugSnapshot(phase: "final", rawText: finalText, effectiveText: "")
+        }
+
+        let textToFinalize = appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !textToFinalize.isEmpty {
+            let recognitionSnapshot = liveRecognitionText.trimmingCharacters(in: .whitespacesAndNewlines)
+            finalizeLiveEntry(text: textToFinalize,
+                              recognitionText: recognitionSnapshot.isEmpty ? finalText : recognitionSnapshot)
         }
 
         provisionalEntryIndex = nil
         provisionalSnapshotText = ""
         latestRecognitionUpdate = nil
-        appState.currentOriginalText = ""
-        appState.currentTranslatedText = ""
-    }
-
-    private func updateProvisionalEntry(index: Int, text: String) {
-        guard index < appState.transcriptEntries.count else { return }
-        appState.transcriptEntries[index].originalText = text
+        clearLiveEntry()
+        appState.recognitionPhase = "listening"
     }
 
     private func requestLiveTranslationIfNeeded(_ text: String) {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else {
             appState.currentTranslatedText = ""
+            liveRecognitionText = ""
             return
         }
 
+        liveRecognitionText = trimmedText
         guard let session = appState.translationSession else { return }
         if !isTranslatingPartial {
             translateLatestPartial(session: session)
@@ -305,51 +327,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func requestEntryTranslation(index: Int, sourceText: String) {
+    private func requestEntryTranslation(index: Int, entryID: UUID, sourceText: String) {
         guard let session = appState.translationSession else { return }
         Task { @MainActor in
             if let response = try? await session.translate(sourceText),
                index < self.appState.transcriptEntries.count,
-               self.appState.transcriptEntries[index].originalText == sourceText {
+               self.appState.transcriptEntries[index].id == entryID {
                 self.appState.transcriptEntries[index].translatedText = response.targetText
             }
         }
     }
 
-    private func looksLikeSameUtterance(previous: String, current: String) -> Bool {
-        let previousTrimmed = previous.trimmingCharacters(in: .whitespacesAndNewlines)
-        let currentTrimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !previousTrimmed.isEmpty, !currentTrimmed.isEmpty else { return false }
-        if currentTrimmed.hasPrefix(previousTrimmed) || previousTrimmed.hasPrefix(currentTrimmed) {
-            return true
-        }
-
-        let commonPrefix = commonPrefixLength(previousTrimmed, currentTrimmed)
-        let minLength = min(previousTrimmed.count, currentTrimmed.count)
-        guard minLength > 0 else { return false }
-        return Double(commonPrefix) / Double(minLength) >= 0.8
-    }
-
-    private func commonPrefixLength(_ lhs: String, _ rhs: String) -> Int {
-        var count = 0
-        for (left, right) in zip(lhs, rhs) {
-            guard left == right else { break }
-            count += 1
-        }
-        return count
-    }
-
-    private func shouldCommitExistingLiveEntry(beforeShowing incomingText: String,
-                                               currentUpdate: RecognitionUpdate,
+    private func shouldCommitExistingLiveEntry(currentUpdate: RecognitionUpdate,
                                                previousUpdate: RecognitionUpdate?) -> Bool {
         let currentLiveText = appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard provisionalEntryIndex == nil, !currentLiveText.isEmpty else { return false }
-        guard !looksLikeSameUtterance(previous: currentLiveText, current: incomingText) else { return false }
-
-        if currentLiveText.last.map(Self.isSentenceBoundaryCharacter) == true {
-            return true
-        }
-
         return didRecognitionTimelineReset(previousUpdate: previousUpdate, currentUpdate: currentUpdate)
     }
 
@@ -371,6 +363,207 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ".!?。！？".contains(character)
     }
 
+    private func effectiveIncomingText(from fullText: String) -> String {
+        let trimmedFullText = fullText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedFullText.isEmpty else { return "" }
+        guard provisionalEntryIndex != nil, !provisionalSnapshotText.isEmpty else { return trimmedFullText }
+
+        if trimmedFullText.hasPrefix(provisionalSnapshotText) {
+            return String(trimmedFullText.dropFirst(provisionalSnapshotText.count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let overlap = suffixPrefixOverlap(previous: provisionalSnapshotText, current: trimmedFullText)
+        if overlap > 0 {
+            return String(trimmedFullText.dropFirst(overlap))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if forwardMatchCoverage(existing: provisionalSnapshotText, incoming: trimmedFullText) >= 0.8 {
+            return ""
+        }
+
+        provisionalEntryIndex = nil
+        provisionalSnapshotText = ""
+        return trimmedFullText
+    }
+
+    private func appendableSuffix(existing: String, incoming: String) -> String {
+        let trimmedExisting = existing.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedIncoming = incoming.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedIncoming.isEmpty else { return "" }
+        guard !trimmedExisting.isEmpty else { return trimmedIncoming }
+
+        if trimmedIncoming.hasPrefix(trimmedExisting) {
+            return String(trimmedIncoming.dropFirst(trimmedExisting.count))
+        }
+
+        if trimmedExisting.hasPrefix(trimmedIncoming) {
+            return ""
+        }
+
+        let overlap = suffixPrefixOverlap(previous: trimmedExisting, current: trimmedIncoming)
+        if overlap >= max(2, min(trimmedExisting.count, trimmedIncoming.count) / 3) {
+            return String(trimmedIncoming.dropFirst(overlap))
+        }
+
+        return forwardAlignedTail(existing: trimmedExisting, incoming: trimmedIncoming) ?? ""
+    }
+
+    private func suffixPrefixOverlap(previous: String, current: String) -> Int {
+        let previousCharacters = Array(previous)
+        let currentCharacters = Array(current)
+        let maxOverlap = min(previousCharacters.count, currentCharacters.count)
+
+        guard maxOverlap > 0 else { return 0 }
+
+        for overlap in stride(from: maxOverlap, through: 1, by: -1) {
+            let previousSuffix = previousCharacters[(previousCharacters.count - overlap)...]
+            let currentPrefix = currentCharacters[..<overlap]
+            if Array(previousSuffix) == Array(currentPrefix) {
+                return overlap
+            }
+        }
+
+        return 0
+    }
+
+    private func appendLiveOriginalText(_ fragment: String, fallbackText: String) {
+        let currentText = appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if currentText.isEmpty {
+            let seededText = fallbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !seededText.isEmpty else { return }
+            appState.currentOriginalText = seededText
+            liveDisplayRevision += 1
+            return
+        }
+
+        let normalizedFragment = fragment.trimmingCharacters(in: .newlines)
+        guard !normalizedFragment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        if let lastCharacter = appState.currentOriginalText.last,
+           let firstCharacter = normalizedFragment.first,
+           !lastCharacter.isWhitespace,
+           !firstCharacter.isWhitespace,
+           shouldInsertSpace(between: lastCharacter, and: firstCharacter) {
+            appState.currentOriginalText += " "
+        }
+
+        appState.currentOriginalText += normalizedFragment
+        liveDisplayRevision += 1
+    }
+
+    private func shouldInsertSpace(between left: Character, and right: Character) -> Bool {
+        left.isASCIIWordLike && right.isASCIIWordLike
+    }
+
+    private func forwardAlignedTail(existing: String, incoming: String) -> String? {
+        let match = longestCommonSubsequenceMatch(existing: existing, incoming: incoming)
+        guard match.coverage >= 0.7, let lastMatchedIncomingIndex = match.lastMatchedIncomingIndex else {
+            return nil
+        }
+
+        let incomingCharacters = Array(incoming)
+        guard lastMatchedIncomingIndex + 1 < incomingCharacters.count else { return "" }
+        return String(incomingCharacters[(lastMatchedIncomingIndex + 1)...])
+    }
+
+    private func forwardMatchCoverage(existing: String, incoming: String) -> Double {
+        longestCommonSubsequenceMatch(existing: existing, incoming: incoming).coverage
+    }
+
+    private func longestCommonSubsequenceMatch(existing: String, incoming: String) -> (coverage: Double, lastMatchedIncomingIndex: Int?) {
+        let existingCharacters = Array(existing)
+        let incomingCharacters = Array(incoming)
+        guard !existingCharacters.isEmpty, !incomingCharacters.isEmpty else { return (0, nil) }
+
+        var dp = Array(repeating: Array(repeating: 0, count: incomingCharacters.count + 1),
+                       count: existingCharacters.count + 1)
+
+        for existingIndex in 0..<existingCharacters.count {
+            for incomingIndex in 0..<incomingCharacters.count {
+                if existingCharacters[existingIndex] == incomingCharacters[incomingIndex] {
+                    dp[existingIndex + 1][incomingIndex + 1] = dp[existingIndex][incomingIndex] + 1
+                } else {
+                    dp[existingIndex + 1][incomingIndex + 1] = max(dp[existingIndex][incomingIndex + 1],
+                                                                   dp[existingIndex + 1][incomingIndex])
+                }
+            }
+        }
+
+        let matchCount = dp[existingCharacters.count][incomingCharacters.count]
+        guard matchCount > 0 else { return (0, nil) }
+
+        var existingIndex = existingCharacters.count
+        var incomingIndex = incomingCharacters.count
+        var matchedIncomingIndices: [Int] = []
+
+        while existingIndex > 0, incomingIndex > 0 {
+            if existingCharacters[existingIndex - 1] == incomingCharacters[incomingIndex - 1] {
+                matchedIncomingIndices.append(incomingIndex - 1)
+                existingIndex -= 1
+                incomingIndex -= 1
+            } else if dp[existingIndex - 1][incomingIndex] >= dp[existingIndex][incomingIndex - 1] {
+                existingIndex -= 1
+            } else {
+                incomingIndex -= 1
+            }
+        }
+
+        let coverage = Double(matchCount) / Double(existingCharacters.count)
+        return (coverage, matchedIncomingIndices.first)
+    }
+
+    private func clearLiveEntry() {
+        appState.currentOriginalText = ""
+        appState.currentTranslatedText = ""
+        liveRecognitionText = ""
+        liveDisplayRevision = 0
+    }
+
+    private func updateDebugSurface(rawText: String, phase: String) {
+        appState.rawRecognitionText = rawText
+        appState.recognitionPhase = phase
+        if phase == "final" {
+            appState.lastFinalRecognitionText = rawText
+        }
+    }
+
+    private func recordDebugSnapshot(phase: String, rawText: String, effectiveText: String) {
+        appState.recordRecognitionDebug(phase: phase,
+                                        rawText: rawText,
+                                        effectiveText: effectiveText,
+                                        displayedText: appState.currentOriginalText,
+                                        translatedText: appState.currentTranslatedText)
+    }
+
+    private func scheduleStableLiveCommitIfNeeded() {
+        let displaySnapshot = appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let recognitionLengthSnapshot = liveRecognitionText.utf16.count
+        let displayRevisionSnapshot = liveDisplayRevision
+
+        guard provisionalEntryIndex == nil, !displaySnapshot.isEmpty, recognitionLengthSnapshot > 0 else { return }
+
+        Task {
+            await liveSegmentDebouncer.debounce { [weak self, displaySnapshot, recognitionLengthSnapshot, displayRevisionSnapshot] in
+                guard let self else { return }
+                await MainActor.run {
+                    guard self.appState.isRunning else { return }
+                    guard self.provisionalEntryIndex == nil else { return }
+
+                    let currentDisplay = self.appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    guard currentDisplay == displaySnapshot,
+                          self.liveDisplayRevision == displayRevisionSnapshot,
+                          self.liveRecognitionText.utf16.count == recognitionLengthSnapshot else { return }
+
+                    self.commitCurrentLiveSegmentAsProvisional(snapshotText: self.liveRecognitionText)
+                }
+            }
+        }
+    }
+
     // MARK: - Overlay
 
     private func showOverlay() {
@@ -387,5 +580,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func hideOverlay() {
         overlayPanel?.orderOut(nil)
+    }
+}
+
+private extension Character {
+    var isASCIIWordLike: Bool {
+        unicodeScalars.allSatisfy { scalar in
+            CharacterSet.alphanumerics.contains(scalar) && scalar.isASCII
+        }
     }
 }

@@ -7,6 +7,7 @@ APP_TEMPLATE="$ROOT_DIR/AppTemplate"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/${APP_NAME}.app"
 SIGNING_ID="${SIGNING_ID:-}"
+PREFERRED_SIGNING_ID="${PREFERRED_SIGNING_ID:-SimulTrans Dev}"
 VERSION="${VERSION:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_TEMPLATE/Contents/Info.plist")}"
 DMG_NAME="${APP_NAME}-${VERSION}.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
@@ -18,6 +19,16 @@ prepare_app_bundle() {
     cp "$APP_TEMPLATE/Contents/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
     cp "$ROOT_DIR/.build/release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
     chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+}
+
+resolve_signing_identity() {
+    if [[ -n "$SIGNING_ID" ]]; then
+        return
+    fi
+
+    if security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$PREFERRED_SIGNING_ID"; then
+        SIGNING_ID="$PREFERRED_SIGNING_ID"
+    fi
 }
 
 sign_app_bundle() {
@@ -41,6 +52,7 @@ echo "[2/4] app bundle を作成中..."
 prepare_app_bundle
 
 echo "[3/4] コード署名を実行中..."
+resolve_signing_identity
 sign_app_bundle
 
 echo "[4/4] DMG を作成中..."

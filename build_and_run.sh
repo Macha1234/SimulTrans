@@ -6,8 +6,11 @@ APP_NAME="SimulTrans"
 APP_TEMPLATE="$ROOT_DIR/AppTemplate"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/${APP_NAME}.app"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/Applications}"
+INSTALLED_APP_BUNDLE="$INSTALL_DIR/${APP_NAME}.app"
 CONFIGURATION="${CONFIGURATION:-debug}"
 SIGNING_ID="${SIGNING_ID:-}"
+PREFERRED_SIGNING_ID="${PREFERRED_SIGNING_ID:-SimulTrans Dev}"
 
 if [[ "$CONFIGURATION" == "release" ]]; then
     BUILD_OUTPUT_DIR="$ROOT_DIR/.build/release"
@@ -24,6 +27,16 @@ prepare_app_bundle() {
     chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 }
 
+resolve_signing_identity() {
+    if [[ -n "$SIGNING_ID" ]]; then
+        return
+    fi
+
+    if security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$PREFERRED_SIGNING_ID"; then
+        SIGNING_ID="$PREFERRED_SIGNING_ID"
+    fi
+}
+
 sign_app_bundle() {
     if [[ -n "$SIGNING_ID" ]] && security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$SIGNING_ID"; then
         codesign --force --deep --sign "$SIGNING_ID" "$APP_BUNDLE"
@@ -32,6 +45,13 @@ sign_app_bundle() {
         codesign --force --deep --sign - "$APP_BUNDLE"
         echo "ad-hoc 署名で起動します"
     fi
+}
+
+install_app_bundle() {
+    mkdir -p "$INSTALL_DIR"
+    rm -rf "$INSTALLED_APP_BUNDLE"
+    ditto "$APP_BUNDLE" "$INSTALLED_APP_BUNDLE"
+    xattr -dr com.apple.quarantine "$INSTALLED_APP_BUNDLE" >/dev/null 2>&1 || true
 }
 
 echo "ビルド中 ($CONFIGURATION)..."
@@ -45,8 +65,10 @@ fi
 echo "dist/ に app bundle を作成しています..."
 mkdir -p "$DIST_DIR"
 prepare_app_bundle
+resolve_signing_identity
 sign_app_bundle
+install_app_bundle
 
 echo "アプリを起動します..."
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-open "$APP_BUNDLE"
+open "$INSTALLED_APP_BUNDLE"

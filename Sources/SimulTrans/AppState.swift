@@ -13,6 +13,16 @@ final class AppState {
         }
     }
 
+    struct RecognitionDebugEntry: Identifiable {
+        let id = UUID()
+        let timestamp: Date
+        let phase: String
+        let rawText: String
+        let effectiveText: String
+        let displayedText: String
+        let translatedText: String
+    }
+
     static let supportedLanguages: [SupportedLanguage] = [
         .init(id: "en-US", name: "英語（米国）"),
         .init(id: "en-GB", name: "英語（英国）"),
@@ -50,6 +60,12 @@ final class AppState {
     var currentTranslatedText: String = ""
     var transcriptEntries: [TranscriptEntry] = []
     var errorMessage: String?
+    var debugPanelExpanded: Bool = true
+    var rawRecognitionText: String = ""
+    var effectiveRecognitionText: String = ""
+    var lastFinalRecognitionText: String = ""
+    var recognitionPhase: String = "idle"
+    var debugRecognitionEntries: [RecognitionDebugEntry] = []
 
     // MARK: - Translation Session (set by .translationTask)
     var translationSession: TranslationSession?
@@ -57,6 +73,7 @@ final class AppState {
 
     // MARK: - Max History
     private let maxEntries = 200
+    private let maxDebugEntries = 24
 
     init() {
         sourceLanguage = .init(identifier: Self.defaultSourceLanguageIdentifier)
@@ -76,6 +93,34 @@ final class AppState {
 
     func updateTranslationConfig() {
         translationConfig = .init(source: sourceLanguage, target: targetLanguage)
+    }
+
+    func resetRecognitionDebug(keepHistory: Bool) {
+        rawRecognitionText = ""
+        effectiveRecognitionText = ""
+        lastFinalRecognitionText = ""
+        recognitionPhase = isRunning ? "listening" : "idle"
+
+        if !keepHistory {
+            debugRecognitionEntries.removeAll()
+        }
+    }
+
+    func recordRecognitionDebug(phase: String,
+                                rawText: String,
+                                effectiveText: String,
+                                displayedText: String,
+                                translatedText: String) {
+        let entry = RecognitionDebugEntry(timestamp: Date(),
+                                          phase: phase,
+                                          rawText: rawText,
+                                          effectiveText: effectiveText,
+                                          displayedText: displayedText,
+                                          translatedText: translatedText)
+        debugRecognitionEntries.insert(entry, at: 0)
+        if debugRecognitionEntries.count > maxDebugEntries {
+            debugRecognitionEntries.removeLast(debugRecognitionEntries.count - maxDebugEntries)
+        }
     }
 
     private static func defaultTargetLanguageIdentifier() -> String {
@@ -100,8 +145,7 @@ final class AppState {
         if normalized.hasPrefix("en") { return "en-US" }
         if normalized.hasPrefix("ja") { return "ja" }
         if normalized.hasPrefix("zh-hant") || normalized.hasPrefix("zh-tw") || normalized.hasPrefix("zh-hk") || normalized.hasPrefix("zh-mo") {
-            return "zh-Hant"
-        }
+            return "zh-Hant" }
         if normalized.hasPrefix("zh") { return "zh-Hans" }
         if normalized.hasPrefix("ko") { return "ko" }
         if normalized.hasPrefix("es") { return "es" }
