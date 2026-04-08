@@ -89,7 +89,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
         // 1. Setup speech recognizer
         let recognizer = SFSpeechRecognizer(locale: locale)
         guard let recognizer, recognizer.isAvailable else {
-            await MainActor.run { self.onError?("语音识别不可用 (\(locale.identifier))") }
+            await MainActor.run { self.onError?("音声認識を利用できません (\(locale.identifier))") }
             return
         }
         speechRecognizer = recognizer
@@ -101,7 +101,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             }
         }
         guard status == .authorized else {
-            await MainActor.run { self.onError?("语音识别未授权") }
+            await MainActor.run { self.onError?("音声認識の権限が許可されていません") }
             return
         }
         print("[SimulTrans] Speech authorized")
@@ -112,7 +112,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             do {
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
                 guard let display = content.displays.first else {
-                    await MainActor.run { self.onError?("未找到显示器") }
+                    await MainActor.run { self.onError?("ディスプレイが見つかりません") }
                     return
                 }
                 let filter = SCContentFilter(display: display, excludingWindows: [])
@@ -131,7 +131,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 self.stream = stream
                 print("[SimulTrans] System audio capture started")
             } catch {
-                await MainActor.run { self.onError?("音频捕获失败: \(error.localizedDescription)") }
+                await MainActor.run { self.onError?("音声キャプチャの開始に失敗しました: \(error.localizedDescription)") }
                 return
             }
 
@@ -140,7 +140,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 try startMicrophoneCapture()
                 print("[SimulTrans] Microphone capture started")
             } catch {
-                await MainActor.run { self.onError?("麦克风启动失败: \(error.localizedDescription)") }
+                await MainActor.run { self.onError?("マイク入力の開始に失敗しました: \(error.localizedDescription)") }
                 return
             }
         }

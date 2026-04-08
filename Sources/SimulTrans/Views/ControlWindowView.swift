@@ -7,22 +7,6 @@ struct ControlWindowView: View {
     var onExport: () -> Void
     var onClear: () -> Void
 
-    private let supportedLanguages: [(String, Locale.Language)] = [
-        ("English (US)", .init(identifier: "en-US")),
-        ("English (UK)", .init(identifier: "en-GB")),
-        ("简体中文", .init(identifier: "zh-Hans")),
-        ("繁體中文", .init(identifier: "zh-Hant")),
-        ("日本語", .init(identifier: "ja")),
-        ("한국어", .init(identifier: "ko")),
-        ("Español", .init(identifier: "es")),
-        ("Français", .init(identifier: "fr")),
-        ("Deutsch", .init(identifier: "de")),
-        ("Português", .init(identifier: "pt-BR")),
-        ("Italiano", .init(identifier: "it")),
-        ("Русский", .init(identifier: "ru")),
-        ("العربية", .init(identifier: "ar")),
-    ]
-
     var body: some View {
         VStack(spacing: 16) {
             // Title
@@ -36,7 +20,7 @@ struct ControlWindowView: View {
 
             // Language settings
             Form {
-                Picker("音频来源", selection: $appState.audioSource) {
+                Picker("音声入力", selection: $appState.audioSource) {
                     ForEach(AppState.AudioSource.allCases, id: \.self) { source in
                         Text(source.rawValue).tag(source)
                     }
@@ -44,24 +28,24 @@ struct ControlWindowView: View {
                 .pickerStyle(.segmented)
                 .disabled(appState.isRunning)
 
-                Picker("源语言", selection: $appState.sourceLanguage) {
-                    ForEach(supportedLanguages, id: \.1.minimalIdentifier) { name, lang in
-                        Text(name).tag(lang)
+                Picker("音声の言語", selection: $appState.sourceLanguage) {
+                    ForEach(AppState.supportedLanguages) { language in
+                        Text(language.name).tag(language.locale)
                     }
                 }
 
-                Picker("目标语言", selection: $appState.targetLanguage) {
-                    ForEach(supportedLanguages, id: \.1.minimalIdentifier) { name, lang in
-                        Text(name).tag(lang)
+                Picker("翻訳先", selection: $appState.targetLanguage) {
+                    ForEach(AppState.supportedLanguages) { language in
+                        Text(language.name).tag(language.locale)
                     }
                 }
 
                 Slider(value: $appState.overlayOpacity, in: 0.3...1.0, step: 0.05) {
-                    Text("透明度")
+                    Text("不透明度")
                 }
 
                 Slider(value: $appState.fontSize, in: 12...28, step: 1) {
-                    Text("字号: \(Int(appState.fontSize))")
+                    Text("文字サイズ: \(Int(appState.fontSize))")
                 }
             }
             .formStyle(.grouped)
@@ -85,7 +69,7 @@ struct ControlWindowView: View {
             }) {
                 HStack {
                     Image(systemName: appState.isRunning ? "stop.fill" : "play.fill")
-                    Text(appState.isRunning ? "停止同传" : "开始同传")
+                    Text(appState.isRunning ? "翻訳を停止" : "翻訳を開始")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
@@ -101,7 +85,7 @@ struct ControlWindowView: View {
                     Button(action: onExport) {
                         HStack {
                             Image(systemName: "square.and.arrow.up")
-                            Text("保存记录")
+                            Text("書き出す")
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -111,7 +95,7 @@ struct ControlWindowView: View {
                     Button(action: onClear) {
                         HStack {
                             Image(systemName: "trash")
-                            Text("清空记录")
+                            Text("履歴を消去")
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -121,7 +105,7 @@ struct ControlWindowView: View {
                 }
                 .padding(.horizontal)
 
-                Text("共 \(appState.transcriptEntries.count) 条记录")
+                Text("\(appState.transcriptEntries.count) 件の履歴")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -129,8 +113,8 @@ struct ControlWindowView: View {
             // Instructions
             if !appState.isRunning && appState.transcriptEntries.isEmpty {
                 Text(appState.audioSource == .system
-                     ? "捕获系统音频并实时翻译，需要授权屏幕录制权限"
-                     : "捕获麦克风音频并实时翻译，需要授权麦克风权限")
+                     ? "システム音声を翻訳するには、初回起動時に画面収録の許可が必要です"
+                     : "マイク音声を翻訳するには、初回起動時にマイクへのアクセス許可が必要です")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

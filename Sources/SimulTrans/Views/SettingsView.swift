@@ -3,56 +3,40 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
-    private let supportedLanguages: [(String, Locale.Language)] = [
-        ("English (US)", .init(identifier: "en-US")),
-        ("English (UK)", .init(identifier: "en-GB")),
-        ("简体中文", .init(identifier: "zh-Hans")),
-        ("繁體中文", .init(identifier: "zh-Hant")),
-        ("日本語", .init(identifier: "ja")),
-        ("한국어", .init(identifier: "ko")),
-        ("Español", .init(identifier: "es")),
-        ("Français", .init(identifier: "fr")),
-        ("Deutsch", .init(identifier: "de")),
-        ("Português", .init(identifier: "pt-BR")),
-        ("Italiano", .init(identifier: "it")),
-        ("Русский", .init(identifier: "ru")),
-        ("العربية", .init(identifier: "ar")),
-    ]
-
     var body: some View {
         @Bindable var appState = appState
 
         Form {
-            Section("语言设置") {
-                Picker("源语言 (识别语言)", selection: $appState.sourceLanguage) {
-                    ForEach(supportedLanguages, id: \.1.minimalIdentifier) { name, lang in
-                        Text(name).tag(lang)
+            Section("言語設定") {
+                Picker("音声の言語", selection: $appState.sourceLanguage) {
+                    ForEach(AppState.supportedLanguages) { language in
+                        Text(language.name).tag(language.locale)
                     }
                 }
 
-                Picker("目标语言 (翻译为)", selection: $appState.targetLanguage) {
-                    ForEach(supportedLanguages, id: \.1.minimalIdentifier) { name, lang in
-                        Text(name).tag(lang)
+                Picker("翻訳先", selection: $appState.targetLanguage) {
+                    ForEach(AppState.supportedLanguages) { language in
+                        Text(language.name).tag(language.locale)
                     }
                 }
             }
 
-            Section("外观") {
+            Section("表示") {
                 Slider(value: $appState.overlayOpacity, in: 0.3...1.0, step: 0.05) {
-                    Text("透明度")
+                    Text("不透明度")
                 }
 
                 Slider(value: $appState.fontSize, in: 12...28, step: 1) {
-                    Text("字号: \(Int(appState.fontSize))")
+                    Text("文字サイズ: \(Int(appState.fontSize))")
                 }
             }
 
-            Section("说明") {
-                Text("1. 在「系统设置 → 辅助功能 → 实时字幕」中开启实时字幕")
+            Section("使い方") {
+                Text("1. 音声入力と翻訳先の言語を選びます")
                     .font(.callout)
-                Text("2. 本应用需要「辅助功能」权限来读取实时字幕文字")
+                Text("2. 初回起動時に必要な権限を macOS で許可します")
                     .font(.callout)
-                Text("3. 翻译使用 Apple 本地 AI，首次使用某语言对可能需要下载语言包")
+                Text("3. 「翻訳を開始」を押すと字幕と翻訳がリアルタイムで表示されます")
                     .font(.callout)
             }
         }

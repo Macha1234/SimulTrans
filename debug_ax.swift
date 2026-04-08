@@ -2,18 +2,18 @@
 import AppKit
 import ApplicationServices
 
-print("=== SimulTrans AX Diagnostics ===\n")
+print("=== SimulTrans アクセシビリティ診断 ===\n")
 
-// 1. Check accessibility permission
+// 1. アクセシビリティ権限を確認
 let trusted = AXIsProcessTrusted()
-print("1. Accessibility trusted: \(trusted)")
+print("1. アクセシビリティ権限: \(trusted)")
 if !trusted {
-    print("   -> Need to grant accessibility permission to Terminal/iTerm")
-    print("   -> System Settings → Privacy & Security → Accessibility")
+    print("   -> Terminal または iTerm にアクセシビリティ権限を付与してください")
+    print("   -> システム設定 → プライバシーとセキュリティ → アクセシビリティ")
 }
 
-// 2. Find Live Captions process
-print("\n2. Searching for Live Captions process...")
+// 2. ライブキャプションのプロセスを探す
+print("\n2. ライブキャプションのプロセスを検索しています...")
 
 let allApps = NSWorkspace.shared.runningApplications
 let candidates = allApps.filter {
@@ -23,48 +23,49 @@ let candidates = allApps.filter {
            bid.contains("LiveCaption") ||
            bid.contains("caption") ||
            name.contains("Live Captions") ||
+           name.contains("ライブキャプション") ||
            name.contains("实时字幕")
 }
 
 if candidates.isEmpty {
-    print("   -> NOT FOUND! Is Live Captions enabled?")
-    print("   -> Go to System Settings → Accessibility → Live Captions")
-    print("\n   All accessibility-related processes:")
+    print("   -> 見つかりません。ライブキャプションが有効か確認してください")
+    print("   -> システム設定 → アクセシビリティ → ライブキャプション")
+    print("\n   アクセシビリティ関連のプロセス一覧:")
     for app in allApps where (app.bundleIdentifier ?? "").contains("accessibility") {
         print("   - [\(app.processIdentifier)] \(app.bundleIdentifier ?? "?") (\(app.localizedName ?? "?"))")
     }
 } else {
     for app in candidates {
-        print("   -> Found: pid=\(app.processIdentifier) bundle=\(app.bundleIdentifier ?? "nil") name=\(app.localizedName ?? "nil")")
+        print("   -> 検出: pid=\(app.processIdentifier) bundle=\(app.bundleIdentifier ?? "nil") name=\(app.localizedName ?? "nil")")
 
-        // 3. Try to read AX tree
-        print("\n3. Reading AX tree for pid \(app.processIdentifier)...")
+        // 3. AX ツリーを読む
+        print("\n3. pid \(app.processIdentifier) の AX ツリーを読み取っています...")
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
 
-        // Get role
+        // Role を取得
         var roleRef: CFTypeRef?
         let roleResult = AXUIElementCopyAttributeValue(appElement, kAXRoleAttribute as CFString, &roleRef)
         print("   App role: \(roleRef as? String ?? "nil") (result: \(roleResult.rawValue))")
 
-        // Get windows
+        // Window を取得
         var windowsRef: CFTypeRef?
         let winResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
-        print("   Windows result: \(winResult.rawValue) (0=success, -25204=notAllowed, -25202=noValue)")
+        print("   Windows result: \(winResult.rawValue) (0=success, -25204=権限不足, -25202=値なし)")
 
         if winResult == .success, let windows = windowsRef as? [AXUIElement] {
-            print("   Window count: \(windows.count)")
+            print("   Window 数: \(windows.count)")
             for (i, window) in windows.enumerated() {
                 print("\n   --- Window \(i) ---")
                 dumpElement(window, depth: 1, maxDepth: 8)
             }
         } else {
-            print("   -> Cannot read windows! Error code: \(winResult.rawValue)")
+            print("   -> Window を読み取れません。Error code: \(winResult.rawValue)")
             if winResult.rawValue == -25204 {
-                print("   -> This means PERMISSION DENIED")
-                print("   -> Add Terminal to Accessibility in System Settings")
+                print("   -> アクセシビリティ権限が拒否されています")
+                print("   -> システム設定で Terminal にアクセシビリティ権限を追加してください")
             }
 
-            // Try focused element as fallback
+            // Fallback として focused element を試す
             var focusedRef: CFTypeRef?
             let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedRef)
             print("   Focused element result: \(focusResult.rawValue)")
@@ -72,7 +73,7 @@ if candidates.isEmpty {
     }
 }
 
-print("\n=== Done ===")
+print("\n=== 完了 ===")
 
 func dumpElement(_ element: AXUIElement, depth: Int, maxDepth: Int) {
     guard depth <= maxDepth else { return }

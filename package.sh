@@ -23,27 +23,27 @@ prepare_app_bundle() {
 sign_app_bundle() {
     if [[ -n "$SIGNING_ID" ]] && security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$SIGNING_ID"; then
         codesign --force --deep --sign "$SIGNING_ID" "$APP_BUNDLE"
-        echo "    Signed with: $SIGNING_ID"
+        echo "    署名に使用した証明書: $SIGNING_ID"
     else
         codesign --force --deep --sign - "$APP_BUNDLE"
-        echo "    Signed with: ad-hoc"
+        echo "    ad-hoc 署名を使用します"
     fi
 }
 
-echo "=== Building ${APP_NAME} v${VERSION} ==="
+echo "=== ${APP_NAME} v${VERSION} をビルドします ==="
 cd "$ROOT_DIR"
 mkdir -p "$DIST_DIR"
 
-echo "[1/4] Building release binary..."
+echo "[1/4] Release ビルドを実行中..."
 swift build -c release
 
-echo "[2/4] Creating app bundle..."
+echo "[2/4] app bundle を作成中..."
 prepare_app_bundle
 
-echo "[3/4] Code signing..."
+echo "[3/4] コード署名を実行中..."
 sign_app_bundle
 
-echo "[4/4] Creating DMG..."
+echo "[4/4] DMG を作成中..."
 rm -f "$DMG_PATH"
 DMG_TMP="$(mktemp -d "${TMPDIR:-/tmp}/simultrans.XXXXXX")"
 cp -R "$APP_BUNDLE" "$DMG_TMP/"
@@ -59,5 +59,5 @@ hdiutil create \
 rm -rf "$DMG_TMP"
 
 echo ""
-echo "Output: $DMG_PATH"
-echo "Size:   $(du -h "$DMG_PATH" | cut -f1)"
+echo "出力先: $DMG_PATH"
+echo "サイズ: $(du -h "$DMG_PATH" | cut -f1)"

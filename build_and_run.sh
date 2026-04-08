@@ -10,10 +10,8 @@ CONFIGURATION="${CONFIGURATION:-debug}"
 SIGNING_ID="${SIGNING_ID:-}"
 
 if [[ "$CONFIGURATION" == "release" ]]; then
-    BUILD_ARGS=(-c release)
     BUILD_OUTPUT_DIR="$ROOT_DIR/.build/release"
 else
-    BUILD_ARGS=()
     BUILD_OUTPUT_DIR="$ROOT_DIR/.build/debug"
 fi
 
@@ -29,22 +27,26 @@ prepare_app_bundle() {
 sign_app_bundle() {
     if [[ -n "$SIGNING_ID" ]] && security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$SIGNING_ID"; then
         codesign --force --deep --sign "$SIGNING_ID" "$APP_BUNDLE"
-        echo "Signed with identity: $SIGNING_ID"
+        echo "署名に使用した証明書: $SIGNING_ID"
     else
         codesign --force --deep --sign - "$APP_BUNDLE"
-        echo "Signed with ad-hoc identity"
+        echo "ad-hoc 署名で起動します"
     fi
 }
 
-echo "Building ($CONFIGURATION)..."
+echo "ビルド中 ($CONFIGURATION)..."
 cd "$ROOT_DIR"
-swift build "${BUILD_ARGS[@]}"
+if [[ "$CONFIGURATION" == "release" ]]; then
+    swift build -c release
+else
+    swift build
+fi
 
-echo "Creating app bundle in dist/..."
+echo "dist/ に app bundle を作成しています..."
 mkdir -p "$DIST_DIR"
 prepare_app_bundle
 sign_app_bundle
 
-echo "Launching..."
+echo "アプリを起動します..."
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 open "$APP_BUNDLE"

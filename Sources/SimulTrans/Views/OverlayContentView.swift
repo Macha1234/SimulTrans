@@ -20,14 +20,14 @@ struct OverlayContentView: View {
                 Circle()
                     .fill(appState.isRunning ? Color.green : Color.gray)
                     .frame(width: 8, height: 8)
-                Text(appState.isRunning ? "同传中" : "已停止")
+                Text(appState.isRunning ? "翻訳中" : "停止中")
                     .font(.caption.bold())
                     .foregroundStyle(.secondary)
 
                 Spacer()
 
                 if !appState.transcriptEntries.isEmpty {
-                    Text("\(appState.transcriptEntries.count) 条")
+                    Text("\(appState.transcriptEntries.count) 件")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
 
@@ -37,7 +37,7 @@ struct OverlayContentView: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
-                    .help("保存记录")
+                    .help("履歴を書き出す")
                 }
             }
             .padding(.horizontal, 16)
@@ -131,7 +131,7 @@ struct OverlayContentView: View {
                     .fill(Color.red)
                     .frame(width: 6, height: 6)
                     .modifier(PulseModifier())
-                Text("正在识别…")
+                Text("音声を認識中…")
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.red.opacity(0.7))
             }
@@ -159,7 +159,7 @@ struct OverlayContentView: View {
                 .fill(Color.green)
                 .frame(width: 6, height: 6)
                 .modifier(PulseModifier())
-            Text("正在监听，等待下一句…")
+            Text("待機中…次の発話を待っています")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(.secondary)
         }

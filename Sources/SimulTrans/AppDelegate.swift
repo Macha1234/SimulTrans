@@ -42,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "SimulTrans 同传"
+        window.title = "SimulTrans 同時通訳"
         window.contentView = hostingView
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -59,12 +59,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         audioRecognizer.onResult = { [weak self] update in
             guard let self else { return }
+            let previousUpdate = self.latestRecognitionUpdate
             self.latestRecognitionUpdate = update
 
             if update.isFinal {
                 self.handleFinalRecognitionUpdate(update)
             } else {
-                self.handlePartialRecognitionUpdate(update)
+                self.handlePartialRecognitionUpdate(update, previousUpdate: previousUpdate)
             }
         }
 
@@ -110,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !entries.isEmpty else { return }
 
         let panel = NSSavePanel()
-        panel.title = "保存会议记录"
+        panel.title = "文字起こしを保存"
         panel.nameFieldStringValue = "SimulTrans_\(Self.dateString()).txt"
         panel.allowedContentTypes = [.plainText]
 
@@ -134,10 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timeFmt.dateFormat = "HH:mm:ss"
 
         var lines: [String] = []
-        lines.append("SimulTrans 会议记录")
-        lines.append("导出时间: \(DateFormatter.localizedString(from: Date(), dateStyle: .long, timeStyle: .medium))")
+        lines.append("SimulTrans 文字起こし")
+        lines.append("出力日時: \(DateFormatter.localizedString(from: Date(), dateStyle: .long, timeStyle: .medium))")
         if let first = entries.first, let last = entries.last {
-            lines.append("会议时段: \(timeFmt.string(from: first.timestamp)) ~ \(timeFmt.string(from: last.timestamp))")
+            lines.append("記録区間: \(timeFmt.string(from: first.timestamp)) 〜 \(timeFmt.string(from: last.timestamp))")
         }
         lines.append(String(repeating: "─", count: 50))
         lines.append("")
@@ -147,7 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             lines.append("[\(i + 1)] \(time)")
             lines.append("原文: \(entry.originalText)")
             if let translated = entry.translatedText {
-                lines.append("译文: \(translated)")
+                lines.append("翻訳: \(translated)")
             }
             lines.append("")
         }
@@ -223,7 +224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         requestEntryTranslation(index: entryIndex, sourceText: sourceText)
     }
 
-    private func handlePartialRecognitionUpdate(_ update: RecognitionUpdate) {
+    private func handlePartialRecognitionUpdate(_ update: RecognitionUpdate, previousUpdate: RecognitionUpdate?) {
         let fullText = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !fullText.isEmpty else {
             appState.currentOriginalText = ""
@@ -250,6 +251,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             provisionalEntryIndex = nil
             provisionalSnapshotText = ""
+        }
+
+        if shouldCommitExistingLiveEntry(beforeShowing: fullText, currentUpdate: update, previousUpdate: previousUpdate) {
+            finalizeLiveEntry(text: appState.currentOriginalText)
         }
 
         appState.currentOriginalText = fullText
@@ -332,6 +337,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             count += 1
         }
         return count
+    }
+
+    private func shouldCommitExistingLiveEntry(beforeShowing incomingText: String,
+                                               currentUpdate: RecognitionUpdate,
+                                               previousUpdate: RecognitionUpdate?) -> Bool {
+        let currentLiveText = appState.currentOriginalText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard provisionalEntryIndex == nil, !currentLiveText.isEmpty else { return false }
+        guard !looksLikeSameUtterance(previous: currentLiveText, current: incomingText) else { return false }
+
+        if currentLiveText.last.map(Self.isSentenceBoundaryCharacter) == true {
+            return true
+        }
+
+        return didRecognitionTimelineReset(previousUpdate: previousUpdate, currentUpdate: currentUpdate)
+    }
+
+    private func didRecognitionTimelineReset(previousUpdate: RecognitionUpdate?,
+                                             currentUpdate: RecognitionUpdate) -> Bool {
+        guard let previousUpdate else { return false }
+
+        let previousDuration = previousUpdate.segments.last?.endTime ?? 0
+        let currentDuration = currentUpdate.segments.last?.endTime ?? 0
+        let currentFirstTimestamp = currentUpdate.segments.first?.timestamp ?? 0
+
+        guard previousDuration >= 1.0 else { return false }
+        guard currentDuration > 0, currentFirstTimestamp < 0.35 else { return false }
+
+        return currentDuration + 0.6 < previousDuration
+    }
+
+    private static func isSentenceBoundaryCharacter(_ character: Character) -> Bool {
+        ".!?。！？".contains(character)
     }
 
     // MARK: - Overlay

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate SimulTrans app icon - Google Translate style with A and 文."""
+"""SimulTrans 用のアプリアイコンを生成する。"""
 from PIL import Image, ImageDraw, ImageFont
 import os, subprocess, tempfile
 
@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
     preview_path = os.path.join(dist_dir, "icon_preview.png")
     img.save(preview_path)
-    print(f"Preview saved: {preview_path}")
+    print(f"プレビューを保存しました: {preview_path}")
 
     icns_path = os.path.join(resources_dir, "AppIcon.icns")
     create_icns(img, icns_path)
-    print(f"Icon created: {icns_path}")
+    print(f"アイコンを生成しました: {icns_path}")
