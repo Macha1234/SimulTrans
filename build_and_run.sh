@@ -23,6 +23,11 @@ prepare_app_bundle() {
     mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
     cp "$APP_TEMPLATE/Contents/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
     cp "$APP_TEMPLATE/Contents/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+    # Copy any .lproj folders (InfoPlist.strings localization)
+    for lproj in "$APP_TEMPLATE/Contents/Resources/"*.lproj; do
+        [[ -d "$lproj" ]] || continue
+        cp -R "$lproj" "$APP_BUNDLE/Contents/Resources/"
+    done
     cp "$BUILD_OUTPUT_DIR/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
     chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 }

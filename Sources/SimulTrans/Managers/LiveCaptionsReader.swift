@@ -29,6 +29,16 @@ struct RecognitionSegment: Sendable {
 
 /// Captures system audio via ScreenCaptureKit and performs real-time speech recognition.
 final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
+    private struct BufferedAudioChunk {
+        let buffer: AVAudioPCMBuffer
+        let duration: TimeInterval
+    }
+
+    private struct BufferedAudioState {
+        var chunks: [BufferedAudioChunk] = []
+        var totalDuration: TimeInterval = 0
+    }
+
     private var stream: SCStream?
     private var audioEngine: AVAudioEngine?
     private var speechRecognizer: SFSpeechRecognizer?
@@ -41,6 +51,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
     private var modernSpeechPipeline: Any?
 
     private let _isRunningAtomic = OSAllocatedUnfairLock(initialState: false)
+    private let bufferedAudioState = OSAllocatedUnfairLock(initialState: BufferedAudioState())
     var isRunning: Bool {
         _isRunningAtomic.withLock { $0 }
     }
@@ -53,6 +64,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
     private var lastSegmentText: String = ""
 
     private let audioQueue = DispatchQueue(label: "com.simultrans.audio")
+    private let restartAudioPrebufferDuration: TimeInterval = 0.8
     private let recognitionRestartDelay: DispatchTimeInterval = .milliseconds(50)
     private let silenceBoundaryDuration: CFTimeInterval = 1.15
     private let speechLevelThreshold: Float = 0.010
@@ -74,6 +86,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
     func stop() {
         _isRunningAtomic.withLock { $0 = false }
         resetAudioActivityTracking()
+        resetBufferedAudio()
 
         if #available(macOS 26.0, *), usingModernSpeechPipeline {
             stopModernSpeechPipeline()
@@ -100,6 +113,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
 
     private func doStart(locale: Locale, source: AudioSource) async {
         resetAudioActivityTracking()
+        resetBufferedAudio()
         analyzerFormat = nil
         audioConverter = nil
         converterInputSignature = nil
@@ -112,7 +126,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 print("[SimulTrans] SpeechTranscriber pipeline enabled")
             } catch {
                 await MainActor.run {
-                    self.onError?("新しい音声認識パイプラインの開始に失敗しました。旧方式にフォールバックします: \(error.localizedDescription)")
+                    self.onError?("The modern speech pipeline could not start. Falling back to the classic recognizer: \(error.localizedDescription)")
                 }
                 stopModernSpeechPipeline()
             }
@@ -122,7 +136,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             // 1. Setup speech recognizer
             let recognizer = SFSpeechRecognizer(locale: locale)
             guard let recognizer, recognizer.isAvailable else {
-                await MainActor.run { self.onError?("音声認識を利用できません (\(locale.identifier))") }
+                await MainActor.run { self.onError?("Speech recognition is unavailable for \(locale.identifier).") }
                 return
             }
             speechRecognizer = recognizer
@@ -134,7 +148,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 }
             }
             guard status == .authorized else {
-                await MainActor.run { self.onError?("音声認識の権限が許可されていません") }
+                await MainActor.run { self.onError?("Speech recognition permission has not been granted.") }
                 return
             }
             print("[SimulTrans] Speech authorized")
@@ -151,14 +165,14 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 guard hasScreenCaptureAccess else {
                     _isRunningAtomic.withLock { $0 = false }
                     await MainActor.run {
-                        self.onError?("画面収録の権限が必要です。システム設定で SimulTrans を許可したあと、もう一度開始してください。")
+                        self.onError?("Screen Recording permission is required. Allow SimulTrans in System Settings, then try again.")
                     }
                     return
                 }
 
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
                 guard let display = content.displays.first else {
-                    await MainActor.run { self.onError?("ディスプレイが見つかりません") }
+                    await MainActor.run { self.onError?("No display was found for system audio capture.") }
                     return
                 }
                 let filter = SCContentFilter(display: display, excludingWindows: [])
@@ -178,7 +192,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 print("[SimulTrans] System audio capture started")
             } catch {
                 _isRunningAtomic.withLock { $0 = false }
-                await MainActor.run { self.onError?("音声キャプチャの開始に失敗しました: \(error.localizedDescription)") }
+                await MainActor.run { self.onError?("Failed to start audio capture: \(error.localizedDescription)") }
                 return
             }
 
@@ -188,7 +202,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 print("[SimulTrans] Microphone capture started")
             } catch {
                 _isRunningAtomic.withLock { $0 = false }
-                await MainActor.run { self.onError?("マイク入力の開始に失敗しました: \(error.localizedDescription)") }
+                await MainActor.run { self.onError?("Failed to start microphone capture: \(error.localizedDescription)") }
                 return
             }
         }
@@ -252,6 +266,8 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 }
             }
         }
+
+        replayBufferedAudioIfNeeded(into: request)
     }
 
     private func startMicrophoneCapture() throws {
@@ -268,6 +284,11 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 }
             } else {
                 let level = self.audioLevel(for: buffer)
+                if let bufferCopy = self.copyPCMBuffer(buffer) {
+                    self.audioQueue.async { [weak self] in
+                        self?.storeBufferedAudio(bufferCopy)
+                    }
+                }
                 self.audioQueue.async { [weak self] in
                     self?.handleAudioActivity(level: level)
                 }
@@ -284,7 +305,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
         let selectedLocale = await SpeechTranscriber.supportedLocale(equivalentTo: locale) ?? locale
         let transcriber = SpeechTranscriber(locale: selectedLocale, preset: .timeIndexedProgressiveTranscription)
         guard let targetFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber]) else {
-            throw NSError(domain: "SimulTrans.Speech", code: 1, userInfo: [NSLocalizedDescriptionKey: "SpeechTranscriber と互換性のある音声フォーマットが見つかりませんでした"])
+            throw NSError(domain: "SimulTrans.Speech", code: 1, userInfo: [NSLocalizedDescriptionKey: "No compatible audio format was found for SpeechTranscriber."])
         }
 
         let analyzer = SpeechAnalyzer(modules: [transcriber])
@@ -315,7 +336,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             } catch {
                 guard self.isRunning else { return }
                 let callback = self.onError
-                await MainActor.run { callback?("SpeechTranscriber エラー: \(error.localizedDescription)") }
+                await MainActor.run { callback?("SpeechTranscriber error: \(error.localizedDescription)") }
             }
         }
 
@@ -328,7 +349,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             } catch {
                 guard self.isRunning else { return }
                 let callback = self.onError
-                await MainActor.run { callback?("音声解析の開始に失敗しました: \(error.localizedDescription)") }
+                await MainActor.run { callback?("Failed to start audio analysis: \(error.localizedDescription)") }
             }
         }
 
@@ -400,6 +421,41 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
         lastVoiceActivityTime = CACurrentMediaTime()
         hasDetectedSpeech = false
         silenceBoundarySent = false
+    }
+
+    private func resetBufferedAudio() {
+        bufferedAudioState.withLock { state in
+            state.chunks.removeAll()
+            state.totalDuration = 0
+        }
+    }
+
+    private func storeBufferedAudio(_ buffer: AVAudioPCMBuffer) {
+        let sampleRate = max(buffer.format.sampleRate, 1)
+        let duration = Double(buffer.frameLength) / sampleRate
+
+        bufferedAudioState.withLock { state in
+            state.chunks.append(.init(buffer: buffer, duration: duration))
+            state.totalDuration += duration
+
+            while state.totalDuration > restartAudioPrebufferDuration, !state.chunks.isEmpty {
+                state.totalDuration -= state.chunks.removeFirst().duration
+            }
+        }
+    }
+
+    private func replayBufferedAudioIfNeeded(into request: SFSpeechAudioBufferRecognitionRequest) {
+        let snapshot = bufferedAudioState.withLock { state in
+            (state.chunks.map(\.buffer), state.totalDuration)
+        }
+
+        guard !snapshot.0.isEmpty else { return }
+
+        for buffer in snapshot.0 {
+            request.append(buffer)
+        }
+
+        print("[SimulTrans] Replayed \(snapshot.0.count) buffered audio chunks (\(Int(snapshot.1 * 1000)) ms)")
     }
 
     private func handleAudioActivity(level: Float) {
@@ -570,6 +626,7 @@ extension SystemAudioRecognizer: SCStreamOutput {
         if usingModernSpeechPipeline {
             submitBufferToModernSpeechPipeline(pcmBuffer)
         } else {
+            storeBufferedAudio(pcmBuffer)
             handleAudioActivity(level: audioLevel(for: pcmBuffer))
             recognitionRequest?.append(pcmBuffer)
         }

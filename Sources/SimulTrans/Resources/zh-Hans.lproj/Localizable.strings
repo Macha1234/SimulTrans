@@ -1,0 +1,70 @@
+/* Header / status */
+"ON AIR" = "直播中";
+"STANDBY" = "待机";
+"ON AIR · %@" = "直播中 · %@";
+"vol. 01 / live room" = "第 01 期 / 直播间";
+
+/* Sections */
+"Input" = "输入";
+"Overlay" = "悬浮窗";
+"Debug" = "调试";
+"Audio Input" = "音频输入";
+"Source Language" = "源语言";
+"Translate To" = "目标语言";
+"Opacity" = "不透明度";
+
+/* Footer / actions */
+"START TRANSLATION" = "开始翻译";
+"STOP TRANSLATION" = "停止翻译";
+"START" = "开始";
+"STOP" = "停止";
+"EXPORT" = "导出";
+"CLEAR HISTORY" = "清空记录";
+"OPEN WINDOW" = "打开窗口";
+"%lld entries recorded" = "已记录 %lld 条";
+"%lld entries · %@" = "%lld 条 · %@";
+
+/* Audio sources */
+"System Audio" = "系统音频";
+"Microphone" = "麦克风";
+
+/* Menubar popover summary */
+"Source" = "源";
+"Target" = "目标";
+"Visible" = "显示中";
+"Hidden" = "已隐藏";
+
+/* Onboarding */
+"Step 02 / 03 · Permissions" = "第 02 / 03 步 · 权限";
+"— SimulTrans —" = "— SimulTrans —";
+"Screen recording" = "屏幕录制";
+"Needed to capture system audio from meetings, webinars, and livestreams." = "用于捕获会议、网络研讨会和直播的系统音频。";
+"Optional. Only if you plan to translate a live conversation in the room." = "可选。仅当你需要翻译现场对话时使用。";
+"Speech recognition" = "语音识别";
+"Apple's on-device speech engine powers transcription." = "由 Apple 的本地语音引擎驱动转写。";
+"SimulTrans runs entirely on this device. These permissions stay between you and macOS — nothing is sent anywhere." = "SimulTrans 完全在本机运行。这些权限只在你和 macOS 之间——任何数据都不会上传。";
+"Granted" = "已授权";
+"Open Settings" = "打开设置";
+"Grant" = "授权";
+"Skip for now" = "暂不设置";
+"Continue →" = "继续 →";
+
+/* Settings tabs */
+"General" = "通用";
+"Languages" = "语言";
+"Hotkeys" = "快捷键";
+"Export" = "导出";
+"Advanced" = "高级";
+
+/* Settings · General */
+"Theme" = "外观";
+"Auto" = "自动";
+"Light" = "浅色";
+"Dark" = "深色";
+"App Language" = "应用语言";
+"Use system language" = "跟随系统";
+"Launch at login" = "登录时自动启动";
+"Show menu bar icon" = "显示菜单栏图标";
+"Hide dock icon" = "隐藏 Dock 图标";
+"Dim overlay when silent" = "静音时变暗悬浮窗";
+"Show debug recognition panel" = "显示识别调试面板";

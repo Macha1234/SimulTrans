@@ -24,5 +24,13 @@
     <string>SimulTrans は音声を認識して翻訳するためにマイクへのアクセスを使用します。</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>SimulTrans は翻訳用の文字起こしを行うために音声認識を使用します。</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>zh-Hans</string>
+        <string>ja</string>
+    </array>
 </dict>
 </plist>

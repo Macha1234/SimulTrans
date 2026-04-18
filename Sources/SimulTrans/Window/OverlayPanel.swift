@@ -24,12 +24,12 @@ final class OverlayPanel: NSPanel {
 
         // Default size and position at bottom-center of screen
         if let screen = NSScreen.main {
-            let width: CGFloat = 940
-            let height: CGFloat = 360
+            let width = STTheme.overlayWindowSize.width
+            let height = STTheme.overlayWindowSize.height
             let x = (screen.frame.width - width) / 2
             let y = screen.frame.height * 0.05
             setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
-            minSize = NSSize(width: 620, height: 220)
+            minSize = STTheme.overlayMinSize
         }
     }
 

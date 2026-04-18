@@ -1,0 +1,4 @@
+"NSMicrophoneUsageDescription" = "SimulTrans uses the microphone to transcribe and translate live speech.";
+"NSSpeechRecognitionUsageDescription" = "SimulTrans uses speech recognition to transcribe audio for translation.";
+"CFBundleDisplayName" = "SimulTrans";
+"CFBundleName" = "SimulTrans";

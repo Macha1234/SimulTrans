@@ -1,0 +1,4 @@
+"NSMicrophoneUsageDescription" = "SimulTrans は音声を認識して翻訳するためにマイクへのアクセスを使用します。";
+"NSSpeechRecognitionUsageDescription" = "SimulTrans は翻訳用の文字起こしを行うために音声認識を使用します。";
+"CFBundleDisplayName" = "SimulTrans";
+"CFBundleName" = "SimulTrans";

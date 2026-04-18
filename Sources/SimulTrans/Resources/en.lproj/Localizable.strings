@@ -1,0 +1,70 @@
+/* Header / status */
+"ON AIR" = "ON AIR";
+"STANDBY" = "STANDBY";
+"ON AIR · %@" = "ON AIR · %@";
+"vol. 01 / live room" = "vol. 01 / live room";
+
+/* Sections */
+"Input" = "Input";
+"Overlay" = "Overlay";
+"Debug" = "Debug";
+"Audio Input" = "Audio Input";
+"Source Language" = "Source Language";
+"Translate To" = "Translate To";
+"Opacity" = "Opacity";
+
+/* Footer / actions */
+"START TRANSLATION" = "START TRANSLATION";
+"STOP TRANSLATION" = "STOP TRANSLATION";
+"START" = "START";
+"STOP" = "STOP";
+"EXPORT" = "EXPORT";
+"CLEAR HISTORY" = "CLEAR HISTORY";
+"OPEN WINDOW" = "OPEN WINDOW";
+"%lld entries recorded" = "%lld entries recorded";
+"%lld entries · %@" = "%lld entries · %@";
+
+/* Audio sources */
+"System Audio" = "System Audio";
+"Microphone" = "Microphone";
+
+/* Menubar popover summary */
+"Source" = "Source";
+"Target" = "Target";
+"Visible" = "Visible";
+"Hidden" = "Hidden";
+
+/* Onboarding */
+"Step 02 / 03 · Permissions" = "Step 02 / 03 · Permissions";
+"— SimulTrans —" = "— SimulTrans —";
+"Screen recording" = "Screen recording";
+"Needed to capture system audio from meetings, webinars, and livestreams." = "Needed to capture system audio from meetings, webinars, and livestreams.";
+"Optional. Only if you plan to translate a live conversation in the room." = "Optional. Only if you plan to translate a live conversation in the room.";
+"Speech recognition" = "Speech recognition";
+"Apple's on-device speech engine powers transcription." = "Apple's on-device speech engine powers transcription.";
+"SimulTrans runs entirely on this device. These permissions stay between you and macOS — nothing is sent anywhere." = "SimulTrans runs entirely on this device. These permissions stay between you and macOS — nothing is sent anywhere.";
+"Granted" = "Granted";
+"Open Settings" = "Open Settings";
+"Grant" = "Grant";
+"Skip for now" = "Skip for now";
+"Continue →" = "Continue →";
+
+/* Settings tabs */
+"General" = "General";
+"Languages" = "Languages";
+"Hotkeys" = "Hotkeys";
+"Export" = "Export";
+"Advanced" = "Advanced";
+
+/* Settings · General */
+"Theme" = "Theme";
+"Auto" = "Auto";
+"Light" = "Light";
+"Dark" = "Dark";
+"App Language" = "App Language";
+"Use system language" = "Use system language";
+"Launch at login" = "Launch at login";
+"Show menu bar icon" = "Show menu bar icon";
+"Hide dock icon" = "Hide dock icon";
+"Dim overlay when silent" = "Dim overlay when silent";
+"Show debug recognition panel" = "Show debug recognition panel";

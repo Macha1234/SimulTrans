@@ -7,6 +7,12 @@ import UniformTypeIdentifiers
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlayPanel: OverlayPanel?
     private var controlWindow: NSWindow?
+    private var settingsWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
+    private var statusItem: NSStatusItem?
+    private var statusPopover: NSPopover?
+    private let permissions = PermissionManager()
+    private static let onboardingDefaultsKey = "simultrans.onboarding.completed.v1"
     private var isTranslatingPartial = false
     private var pendingTranslation = false
     private var latestRecognitionUpdate: RecognitionUpdate?
@@ -20,11 +26,224 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let audioRecognizer = SystemAudioRecognizer()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppFontRegistry.registerBundledFonts()
+        NSApp.appearance = appState.appearancePreference.nsAppearance
+        installMainMenu()
         showControlWindow()
+        permissions.refresh()
+        applyMenuBarIconPreference()
+        observeMenuBarIconPreference()
+
+        if !UserDefaults.standard.bool(forKey: Self.onboardingDefaultsKey) {
+            // Defer briefly so the control window is visible behind the onboarding sheet.
+            DispatchQueue.main.async { [weak self] in
+                self?.showOnboardingWindow()
+            }
+        }
+    }
+
+    // MARK: - Menu
+
+    private func installMainMenu() {
+        let mainMenu = NSMenu()
+
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(NSMenuItem(title: "About SimulTrans",
+                                   action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                                   keyEquivalent: ""))
+        appMenu.addItem(.separator())
+        let settingsItem = NSMenuItem(title: "Settings…",
+                                      action: #selector(openSettings),
+                                      keyEquivalent: ",")
+        settingsItem.target = self
+        appMenu.addItem(settingsItem)
+        appMenu.addItem(.separator())
+        appMenu.addItem(NSMenuItem(title: "Hide SimulTrans",
+                                   action: #selector(NSApplication.hide(_:)),
+                                   keyEquivalent: "h"))
+        let hideOthers = NSMenuItem(title: "Hide Others",
+                                    action: #selector(NSApplication.hideOtherApplications(_:)),
+                                    keyEquivalent: "h")
+        hideOthers.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(hideOthers)
+        appMenu.addItem(NSMenuItem(title: "Show All",
+                                   action: #selector(NSApplication.unhideAllApplications(_:)),
+                                   keyEquivalent: ""))
+        appMenu.addItem(.separator())
+        appMenu.addItem(NSMenuItem(title: "Quit SimulTrans",
+                                   action: #selector(NSApplication.terminate(_:)),
+                                   keyEquivalent: "q"))
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+
+        NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func openSettings() {
+        showSettingsWindow()
+    }
+
+    private func showSettingsWindow() {
+        if let settingsWindow {
+            settingsWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let settingsView = SettingsView().environment(appState)
+        let hostingView = NSHostingView(rootView: settingsView)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0,
+                                width: STTheme.settingsWindowSize.width,
+                                height: STTheme.settingsWindowSize.height),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "SimulTrans Settings"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed = false
+        window.contentView = hostingView
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow = window
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    // MARK: - Menubar status item
+
+    private func observeMenuBarIconPreference() {
+        withObservationTracking { [appState] in
+            _ = appState.showMenuBarIcon
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.applyMenuBarIconPreference()
+                self.observeMenuBarIconPreference()
+            }
+        }
+    }
+
+    private func applyMenuBarIconPreference() {
+        if appState.showMenuBarIcon {
+            installStatusItemIfNeeded()
+        } else {
+            removeStatusItem()
+        }
+    }
+
+    private func installStatusItemIfNeeded() {
+        guard statusItem == nil else { return }
+
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = item.button {
+            let image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "SimulTrans")
+            image?.isTemplate = true
+            button.image = image
+            button.target = self
+            button.action = #selector(toggleStatusPopover(_:))
+        }
+        statusItem = item
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.contentSize = NSSize(width: 320, height: 360)
+        let popoverView = MenubarPopoverView(
+            onToggle: { [weak self] in
+                guard let self else { return }
+                if self.appState.isRunning {
+                    self.stopTranslation()
+                } else {
+                    self.startTranslation()
+                }
+            },
+            onOpenWindow: { [weak self] in
+                self?.statusPopover?.performClose(nil)
+                self?.bringControlWindowForward()
+            }
+        ).environment(appState)
+        popover.contentViewController = NSHostingController(rootView: popoverView)
+        statusPopover = popover
+    }
+
+    private func removeStatusItem() {
+        statusPopover?.performClose(nil)
+        statusPopover = nil
+        if let item = statusItem {
+            NSStatusBar.system.removeStatusItem(item)
+        }
+        statusItem = nil
+    }
+
+    @objc private func toggleStatusPopover(_ sender: Any?) {
+        guard let button = statusItem?.button, let popover = statusPopover else { return }
+
+        if popover.isShown {
+            popover.performClose(sender)
+        } else {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover.contentViewController?.view.window?.makeKey()
+        }
+    }
+
+    private func bringControlWindowForward() {
+        if let controlWindow {
+            controlWindow.makeKeyAndOrderFront(nil)
+        } else {
+            showControlWindow()
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // MARK: - Onboarding
+
+    private func showOnboardingWindow() {
+        if let onboardingWindow {
+            onboardingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let view = OnboardingView(
+            permissions: permissions,
+            onContinue: { [weak self] in self?.completeOnboarding() },
+            onSkip:     { [weak self] in self?.completeOnboarding() }
+        ).environment(appState)
+        let hostingView = NSHostingView(rootView: view)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 520),
+            styleMask: [.titled, .closable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Welcome to SimulTrans"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        window.isMovableByWindowBackground = true
+        window.isReleasedWhenClosed = false
+        window.contentView = hostingView
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        onboardingWindow = window
+    }
+
+    private func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: Self.onboardingDefaultsKey)
+        onboardingWindow?.close()
+        onboardingWindow = nil
     }
 
     // MARK: - Control Window
@@ -40,12 +259,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingView = NSHostingView(rootView: controlView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 820),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: STTheme.controlWindowSize.width, height: STTheme.controlWindowSize.height),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        window.title = "SimulTrans 同時通訳"
+        window.title = "SimulTrans"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        window.isMovableByWindowBackground = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.contentView = hostingView
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -62,6 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         provisionalEntryIndex = nil
         provisionalSnapshotText = ""
         appState.isRunning = true
+        appState.sessionStartedAt = Date()
         appState.errorMessage = nil
         appState.resetRecognitionDebug(keepHistory: false)
         appState.recognitionPhase = "listening"
@@ -105,6 +331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         provisionalSnapshotText = ""
         audioRecognizer.stop()
         appState.isRunning = false
+        appState.sessionStartedAt = nil
         appState.recognitionPhase = "stopped"
     }
 
@@ -124,7 +351,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !entries.isEmpty else { return }
 
         let panel = NSSavePanel()
-        panel.title = "文字起こしを保存"
+        panel.title = "Save Transcript"
         panel.nameFieldStringValue = "SimulTrans_\(Self.dateString()).txt"
         panel.allowedContentTypes = [.plainText]
 
@@ -148,10 +375,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         timeFmt.dateFormat = "HH:mm:ss"
 
         var lines: [String] = []
-        lines.append("SimulTrans 文字起こし")
-        lines.append("出力日時: \(DateFormatter.localizedString(from: Date(), dateStyle: .long, timeStyle: .medium))")
+        lines.append("SimulTrans Transcript")
+        lines.append("Exported: \(DateFormatter.localizedString(from: Date(), dateStyle: .long, timeStyle: .medium))")
         if let first = entries.first, let last = entries.last {
-            lines.append("記録区間: \(timeFmt.string(from: first.timestamp)) 〜 \(timeFmt.string(from: last.timestamp))")
+            lines.append("Recorded range: \(timeFmt.string(from: first.timestamp)) - \(timeFmt.string(from: last.timestamp))")
         }
         lines.append(String(repeating: "─", count: 50))
         lines.append("")
@@ -159,9 +386,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for (i, entry) in entries.enumerated() {
             let time = timeFmt.string(from: entry.timestamp)
             lines.append("[\(i + 1)] \(time)")
-            lines.append("原文: \(entry.originalText)")
+            lines.append("Source: \(entry.originalText)")
             if let translated = entry.translatedText {
-                lines.append("翻訳: \(translated)")
+                lines.append("Translation: \(translated)")
             }
             lines.append("")
         }
@@ -247,6 +474,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let fullText = update.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !fullText.isEmpty else { return }
         updateDebugSurface(rawText: fullText, phase: "partial")
+
+        // If the recognizer starts a fresh timeline after we already committed a
+        // provisional entry, drop the old provisional context immediately so the
+        // next utterance cannot get swallowed by overlap heuristics.
+        if provisionalEntryIndex != nil,
+           didRecognitionTimelineReset(previousUpdate: previousUpdate, currentUpdate: update) {
+            provisionalEntryIndex = nil
+            provisionalSnapshotText = ""
+        }
 
         if shouldCommitExistingLiveEntry(currentUpdate: update, previousUpdate: previousUpdate) {
             commitCurrentLiveSegmentAsProvisional(snapshotText: liveRecognitionText.isEmpty ? previousUpdate?.text : liveRecognitionText)

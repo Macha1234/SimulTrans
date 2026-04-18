@@ -1,0 +1,4 @@
+"NSMicrophoneUsageDescription" = "SimulTrans 使用麦克风进行语音识别和实时翻译。";
+"NSSpeechRecognitionUsageDescription" = "SimulTrans 使用语音识别将音频转写以供翻译。";
+"CFBundleDisplayName" = "SimulTrans";
+"CFBundleName" = "SimulTrans";

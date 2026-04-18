@@ -1,0 +1,70 @@
+/* Header / status */
+"ON AIR" = "オンエア";
+"STANDBY" = "スタンバイ";
+"ON AIR · %@" = "オンエア · %@";
+"vol. 01 / live room" = "vol. 01 / ライブルーム";
+
+/* Sections */
+"Input" = "入力";
+"Overlay" = "オーバーレイ";
+"Debug" = "デバッグ";
+"Audio Input" = "音声入力";
+"Source Language" = "原文の言語";
+"Translate To" = "翻訳先";
+"Opacity" = "不透明度";
+
+/* Footer / actions */
+"START TRANSLATION" = "翻訳を開始";
+"STOP TRANSLATION" = "翻訳を停止";
+"START" = "開始";
+"STOP" = "停止";
+"EXPORT" = "書き出し";
+"CLEAR HISTORY" = "履歴を消去";
+"OPEN WINDOW" = "ウインドウを開く";
+"%lld entries recorded" = "%lld 件を記録";
+"%lld entries · %@" = "%lld 件 · %@";
+
+/* Audio sources */
+"System Audio" = "システム音声";
+"Microphone" = "マイク";
+
+/* Menubar popover summary */
+"Source" = "原文";
+"Target" = "訳文";
+"Visible" = "表示中";
+"Hidden" = "非表示";
+
+/* Onboarding */
+"Step 02 / 03 · Permissions" = "ステップ 02 / 03 · 権限";
+"— SimulTrans —" = "— SimulTrans —";
+"Screen recording" = "画面収録";
+"Needed to capture system audio from meetings, webinars, and livestreams." = "会議・ウェビナー・配信のシステム音声を取り込むために必要です。";
+"Optional. Only if you plan to translate a live conversation in the room." = "任意。室内の会話を翻訳する場合にのみ使用します。";
+"Speech recognition" = "音声認識";
+"Apple's on-device speech engine powers transcription." = "Apple のオンデバイス音声エンジンで文字起こしを行います。";
+"SimulTrans runs entirely on this device. These permissions stay between you and macOS — nothing is sent anywhere." = "SimulTrans はすべてこの端末上で動作します。権限はあなたと macOS の間だけで、外部には何も送信されません。";
+"Granted" = "許可済み";
+"Open Settings" = "設定を開く";
+"Grant" = "許可";
+"Skip for now" = "あとで";
+"Continue →" = "続ける →";
+
+/* Settings tabs */
+"General" = "一般";
+"Languages" = "言語";
+"Hotkeys" = "ショートカット";
+"Export" = "書き出し";
+"Advanced" = "詳細";
+
+/* Settings · General */
+"Theme" = "外観";
+"Auto" = "自動";
+"Light" = "ライト";
+"Dark" = "ダーク";
+"App Language" = "アプリの言語";
+"Use system language" = "システムに合わせる";
+"Launch at login" = "ログイン時に起動";
+"Show menu bar icon" = "メニューバーに表示";
+"Hide dock icon" = "Dock アイコンを隠す";
+"Dim overlay when silent" = "無音時にオーバーレイを暗くする";
+"Show debug recognition panel" = "認識デバッグパネルを表示";

@@ -38,7 +38,7 @@ enum TranslationError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noSession:
-            return "翻訳セッションを開始できませんでした。言語設定を確認してください。"
+            return "Unable to start the translation session. Check the selected languages and try again."
         }
     }
 }
