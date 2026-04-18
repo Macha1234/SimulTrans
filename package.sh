@@ -17,7 +17,15 @@ prepare_app_bundle() {
     mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
     cp "$APP_TEMPLATE/Contents/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
     cp "$APP_TEMPLATE/Contents/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+    for lproj in "$APP_TEMPLATE/Contents/Resources/"*.lproj; do
+        [[ -d "$lproj" ]] || continue
+        cp -R "$lproj" "$APP_BUNDLE/Contents/Resources/"
+    done
     cp "$ROOT_DIR/.build/release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+    for bundle in "$ROOT_DIR/.build/release/"*.bundle; do
+        [[ -d "$bundle" ]] || continue
+        cp -R "$bundle" "$APP_BUNDLE/Contents/Resources/"
+    done
     chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 }
 

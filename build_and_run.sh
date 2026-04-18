@@ -29,6 +29,11 @@ prepare_app_bundle() {
         cp -R "$lproj" "$APP_BUNDLE/Contents/Resources/"
     done
     cp "$BUILD_OUTPUT_DIR/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+    # SwiftPM executable targets emit resource bundles next to the binary.
+    for bundle in "$BUILD_OUTPUT_DIR"/*.bundle; do
+        [[ -d "$bundle" ]] || continue
+        cp -R "$bundle" "$APP_BUNDLE/Contents/Resources/"
+    done
     chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 }
 

@@ -7,6 +7,14 @@ It listens to either system audio or microphone input, transcribes speech with A
 
 The idea is simple: make a practical, local-first alternative to expensive live interpretation tools.
 
+## Download
+
+[Download the latest macOS build](https://github.com/Macha1234/SimulTrans/releases/latest/download/SimulTrans.dmg)
+
+If you prefer to inspect the full release page, changelog, and checksum files first, open:
+
+- [Latest release](https://github.com/Macha1234/SimulTrans/releases/latest)
+
 ## Why This Project Exists
 
 Many real-time translation tools are paid products, and a lot of them are expensive for what should be a simple utility workflow.
@@ -106,6 +114,28 @@ In practice, that means the app tries to stay lightweight and local-first while 
 5. Press `Start Translation`.
 6. Keep the floating overlay on screen while the control window manages history, export, and debugging.
 
+## Install On macOS
+
+1. Download `SimulTrans.dmg` from the latest GitHub release.
+2. Open the DMG and drag `SimulTrans.app` into `Applications`.
+3. Launch the app from `Applications`.
+4. On first launch, macOS may block the app because it is distributed outside the App Store.
+5. If that happens, either:
+   - Right-click the app and choose `Open`
+   - Or open `System Settings > Privacy & Security` and press `Open Anyway`
+6. Grant Screen Recording, Microphone, and Speech Recognition permissions when prompted.
+
+## GitHub Release Builds
+
+GitHub Releases are now the main download channel for this project.
+
+- The direct download link always points to `SimulTrans.dmg`
+- Each tagged release also includes a versioned DMG
+- SHA-256 checksum files are uploaded alongside the DMG assets
+- Builds are packaged automatically by GitHub Actions when a `v*` tag is pushed
+
+Current release builds are distributed outside the Mac App Store and are not notarized, so the first launch experience may include an extra Gatekeeper confirmation step.
+
 ## Requirements
 
 - macOS 15 or later
@@ -153,6 +183,17 @@ VERSION=1.0.1 ./package.sh
 ```
 
 Artifacts are written to `dist/`.
+
+## Publishing A Release
+
+For maintainers, publishing a new downloadable GitHub release is:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+Pushing a `v*` tag triggers the GitHub Actions release workflow, which builds the app on macOS, packages the DMG, generates SHA-256 files, and uploads the assets to GitHub Releases.
 
 ## Project Structure
 
