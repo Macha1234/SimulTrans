@@ -1,15 +1,17 @@
 # SimulTrans
 
-SimulTrans is a macOS app for real-time speech transcription and translation. It captures either system audio or microphone input, transcribes speech with Apple's built-in speech recognition, and translates the result with the `Translation` framework.
+SimulTrans is a macOS app for real-time speech transcription and translation. It captures either system audio or microphone input, transcribes speech with Apple's built-in speech stack, and translates the result with the `Translation` framework.
 
 The goal is simple: a lightweight local-first alternative to expensive live interpretation tools.
 
-## Features
+## Highlights
 
 - Capture system audio or microphone input
 - Show live transcript and translation in a floating overlay
 - Keep completed utterances in a running history instead of letting new speech overwrite them
+- Use Apple's newer speech pipeline when available, with fallback to the classic recognizer
 - Auto-select a sensible default target language based on the system language
+- Inspect raw recognizer output in a built-in debug panel
 - Export transcript history to a text file
 - Build and package as a native macOS app
 
@@ -22,6 +24,28 @@ A lot of live translation tools are paid products, and many of them are not chea
 - Follow English meetings with translated subtitles
 - Watch overseas livestreams or webinars with live translation
 - Save important spoken content with both source text and translation
+
+## Quick Start
+
+1. Choose `System Audio` or `Microphone`.
+2. Pick the spoken language and translation target.
+3. Press `Start Translation`.
+4. Grant macOS permissions the first time you run it.
+5. Watch the floating overlay update in real time while the control window keeps the running history and debug surface.
+
+## Screenshots
+
+### Control Panel
+
+The redesigned control window keeps the setup workflow simple while surfacing the live state, input settings, overlay controls, and transcript actions.
+
+![SimulTrans control panel](assets/screenshots/control-panel.png)
+
+### Recognition Debug View
+
+The built-in debug area helps compare raw recognizer output against the processed and displayed text when tuning the transcription experience.
+
+![SimulTrans recognition debug panel](assets/screenshots/control-panel-detail.png)
 
 ## Tech Stack
 
@@ -36,11 +60,8 @@ A lot of live translation tools are paid products, and many of them are not chea
 - macOS 15 or later
 - Xcode 16 / Swift 6
 - Microphone / Speech Recognition / Screen Recording permissions on first use
+- Best recognition quality on newer macOS versions where the modern speech pipeline is available
 - Some languages may require macOS to download speech or translation assets
-
-## Screenshots
-
-Screenshots will be added soon.
 
 ## Project Structure
 
@@ -74,7 +95,13 @@ Use your own signing identity if needed:
 SIGNING_ID="Apple Development: Your Name" ./build_and_run.sh
 ```
 
-By default, the script uses ad-hoc signing and outputs the app to `dist/SimulTrans.app`.
+By default, the script prefers the `SimulTrans Dev` signing identity when available, installs the app to `~/Applications/SimulTrans.app`, and also writes the build output to `dist/SimulTrans.app`.
+
+## Notes on Recognition
+
+- SimulTrans now prefers Apple's modern speech transcription pipeline on supported systems.
+- A built-in debug panel in the control window shows raw recognizer text, processed text, and displayed live text side by side.
+- The app is designed to preserve the current lightweight local workflow rather than depend on external paid APIs.
 
 ## Packaging
 

@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingView = NSHostingView(rootView: controlView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 820),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
