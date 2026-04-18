@@ -1,0 +1,47 @@
+name: Build Release DMG
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Derive version
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          VERSION="${TAG_NAME#v}"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build DMG
+        run: |
+          chmod +x package.sh
+          VERSION="$VERSION" ./package.sh
+
+      - name: Prepare release assets
+        run: |
+          cp "dist/SimulTrans-${VERSION}.dmg" "dist/SimulTrans.dmg"
+          shasum -a 256 "dist/SimulTrans-${VERSION}.dmg" > "dist/SimulTrans-${VERSION}.sha256"
+          cp "dist/SimulTrans-${VERSION}.sha256" "dist/SimulTrans.sha256"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: SimulTrans ${{ env.VERSION }}
+          generate_release_notes: true
+          files: |
+            dist/SimulTrans-${{ env.VERSION }}.dmg
+            dist/SimulTrans.dmg
+            dist/SimulTrans-${{ env.VERSION }}.sha256
+            dist/SimulTrans.sha256
