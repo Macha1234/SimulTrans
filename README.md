@@ -45,7 +45,7 @@ This round of work focused on making the app feel more like a polished desktop p
 
 ## Screenshot Tour
 
-The control and settings windows follow the host macOS system language. The floating overlay uses the current target language for its own chrome, so the screenshots below may show different UI languages depending on the route being demonstrated.
+The screenshots below are captured using the English app UI so the README stays visually consistent across the walkthrough.
 
 ### First-Run Permission Onboarding
 
