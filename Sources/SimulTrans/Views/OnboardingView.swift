@@ -50,6 +50,7 @@ struct OnboardingView: View {
         }
         .frame(width: 560, height: 520)
         .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .environment(\.locale, appState.appInterfaceLocale)
         .onAppear { permissions.refresh() }
     }
 
@@ -78,16 +79,8 @@ struct OnboardingView: View {
 
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 14) {
-            (
-                Text("We need a ")
-                    .font(STTheme.displayFont(size: 36, weight: .medium))
-                +
-                Text("little")
-                    .font(STTheme.displayItalicFont(size: 36, weight: .regular))
-                +
-                Text("\naccess before we begin.")
-                    .font(STTheme.displayFont(size: 36, weight: .medium))
-            )
+            Text("We need a little\naccess before we begin.", bundle: .module)
+                .font(STTheme.displayFont(size: 36, weight: .medium))
             .tracking(-1.2)
             .lineSpacing(2)
             .foregroundStyle(STTheme.ink)

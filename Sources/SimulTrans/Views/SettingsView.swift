@@ -5,14 +5,25 @@ struct SettingsView: View {
     @State private var selectedTab: Tab = .general
 
     enum Tab: String, CaseIterable, Identifiable {
-        case general = "General"
-        case languages = "Languages"
-        case overlay = "Overlay"
-        case hotkeys = "Hotkeys"
-        case export = "Export"
-        case advanced = "Advanced"
+        case general
+        case languages
+        case overlay
+        case hotkeys
+        case export
+        case advanced
 
         var id: String { rawValue }
+
+        var localizationKey: String {
+            switch self {
+            case .general: return "General"
+            case .languages: return "Languages"
+            case .overlay: return "Overlay"
+            case .hotkeys: return "Hotkeys"
+            case .export: return "Export"
+            case .advanced: return "Advanced"
+            }
+        }
     }
 
     var body: some View {
@@ -34,6 +45,7 @@ struct SettingsView: View {
                height: STTheme.settingsWindowSize.height)
         .background(STTheme.bg)
         .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .environment(\.locale, appState.appInterfaceLocale)
         .onChange(of: appState.sourceLanguage) { appState.updateTranslationConfig() }
         .onChange(of: appState.targetLanguage) { appState.updateTranslationConfig() }
         .onChange(of: appState.appearancePreference) { _, newValue in
@@ -45,7 +57,7 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Settings")
+            Text("Settings", bundle: .module)
                 .font(STTheme.displayFont(size: 22, weight: .medium))
                 .tracking(-0.6)
                 .foregroundStyle(STTheme.ink)
@@ -57,7 +69,7 @@ struct SettingsView: View {
                 Button {
                     selectedTab = tab
                 } label: {
-                    Text(tab.rawValue)
+                    Text(appState.localizedAppString(tab.localizationKey))
                         .font(STTheme.bodyFont(size: 13, weight: tab == selectedTab ? .medium : .regular))
                         .foregroundStyle(tab == selectedTab ? STTheme.onAccent : STTheme.inkSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,7 +104,7 @@ struct SettingsView: View {
     private func content(appState: AppState) -> some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
-                contentHeader(eyebrow: selectedTab.rawValue.uppercased(),
+                contentHeader(eyebrow: appState.localizedAppString(selectedTab.localizationKey),
                               title: titleForTab(selectedTab))
 
                 switch selectedTab {
@@ -118,12 +130,18 @@ struct SettingsView: View {
 
     private func titleForTab(_ tab: Tab) -> String {
         switch tab {
-        case .general:   return "How SimulTrans behaves."
-        case .languages: return "Source and target."
-        case .overlay:   return "How the floating window looks."
-        case .hotkeys:   return "Keyboard shortcuts."
-        case .export:    return "Saving transcripts."
-        case .advanced:  return "Diagnostics and engine."
+        case .general:
+            return appState.localizedAppString("How SimulTrans behaves.")
+        case .languages:
+            return appState.localizedAppString("Source and target.")
+        case .overlay:
+            return appState.localizedAppString("How the floating window looks.")
+        case .hotkeys:
+            return appState.localizedAppString("Keyboard shortcuts.")
+        case .export:
+            return appState.localizedAppString("Saving transcripts.")
+        case .advanced:
+            return appState.localizedAppString("Diagnostics and engine.")
         }
     }
 
@@ -149,22 +167,25 @@ struct SettingsView: View {
     private func generalRows(appState: AppState) -> some View {
         @Bindable var appState = appState
 
-        SetRow(label: "Launch at login") {
+        SetRow(label: appState.localizedAppString("App Language")) {
+            AppLanguagePicker(selection: $appState.appDisplayLanguage)
+        }
+        SetRow(label: appState.localizedAppString("Launch at login")) {
             STSwitch(isOn: $appState.launchAtLogin)
         }
-        SetRow(label: "Show menu bar icon") {
+        SetRow(label: appState.localizedAppString("Show menu bar icon")) {
             STSwitch(isOn: $appState.showMenuBarIcon)
         }
-        SetRow(label: "Hide dock icon",
-               hint: "Run as a pure menu bar app (takes effect on next launch).") {
+        SetRow(label: appState.localizedAppString("Hide dock icon"),
+               hint: appState.localizedAppString("Run as a pure menu bar app (takes effect on next launch).")) {
             STSwitch(isOn: $appState.hideDockIcon)
         }
-        SetRow(label: "Dim overlay when silent",
-               hint: "Fades the overlay to ~30% opacity after 10s of silence.") {
+        SetRow(label: appState.localizedAppString("Dim overlay when silent"),
+               hint: appState.localizedAppString("Fades the overlay to ~30% opacity after 10s of silence.")) {
             STSwitch(isOn: $appState.dimOverlayWhenSilent)
         }
-        SetRow(label: "Theme") {
-            STSegmented(options: AppearancePreference.allCases.map { ($0, $0.label) },
+        SetRow(label: appState.localizedAppString("Theme")) {
+            STSegmented(options: AppearancePreference.allCases.map { ($0, $0.label(in: appState.appInterfaceLocale)) },
                         selected: $appState.appearancePreference)
         }
     }
@@ -175,12 +196,12 @@ struct SettingsView: View {
     private func languagesRows(appState: AppState) -> some View {
         @Bindable var appState = appState
 
-        SetRow(label: "Source language",
-               hint: "What you expect to hear.") {
+        SetRow(label: appState.localizedAppString("Source language"),
+               hint: appState.localizedAppString("What you expect to hear.")) {
             LanguagePicker(selection: $appState.sourceLanguage)
         }
-        SetRow(label: "Translate to",
-               hint: "Apple Translation runs on-device when the language pair is downloaded.") {
+        SetRow(label: appState.localizedAppString("Translate to"),
+               hint: appState.localizedAppString("Apple Translation runs on-device when the language pair is downloaded.")) {
             LanguagePicker(selection: $appState.targetLanguage)
         }
     }
@@ -191,11 +212,13 @@ struct SettingsView: View {
     private func overlayRows(appState: AppState) -> some View {
         @Bindable var appState = appState
 
-        SetRow(label: "Opacity",
-               hint: "Background opacity of the floating overlay.") {
+        SetRow(label: appState.localizedAppString("Opacity"),
+               hint: appState.localizedAppString("Background opacity of the floating overlay.")) {
             SliderControl(value: $appState.overlayOpacity, range: 0.3...1.0, step: 0.05)
         }
-        SetRow(label: "Text size · \(Int(appState.fontSize)) pt") {
+        SetRow(label: String(format: appState.localizedAppString("Text size · %lld pt"),
+                             locale: appState.appInterfaceLocale,
+                             Int(appState.fontSize))) {
             SliderControl(value: Binding(get: { Double(appState.fontSize) },
                                          set: { appState.fontSize = CGFloat($0) }),
                           range: 12...26,
@@ -207,12 +230,12 @@ struct SettingsView: View {
 
     @ViewBuilder
     private func hotkeysRows() -> some View {
-        SetRow(label: "Toggle overlay",
-               hint: "Coming soon — global shortcut to show / hide the floating window.") {
+        SetRow(label: appState.localizedAppString("Toggle overlay"),
+               hint: appState.localizedAppString("Coming soon — global shortcut to show / hide the floating window.")) {
             HotkeyChip(text: "⌘⇧T")
         }
-        SetRow(label: "Start / stop translation",
-               hint: "Coming soon.") {
+        SetRow(label: appState.localizedAppString("Start / stop translation"),
+               hint: appState.localizedAppString("Coming soon.")) {
             HotkeyChip(text: "⌘⇧Space")
         }
     }
@@ -220,8 +243,8 @@ struct SettingsView: View {
     @ViewBuilder
     private func exportRows() -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            SetRow(label: "Default format",
-                   hint: "Plain text with timestamp + source + translation.") {
+            SetRow(label: appState.localizedAppString("Default format"),
+                   hint: appState.localizedAppString("Plain text with timestamp + source + translation.")) {
                 Text("TXT")
                     .font(STTheme.monoFont(size: 11))
                     .tracking(1.5)
@@ -233,8 +256,8 @@ struct SettingsView: View {
                             .stroke(STTheme.ruleHard, lineWidth: 1)
                     )
             }
-            SetRow(label: "Open exported files",
-                   hint: "Reveals each export in Finder after saving.") {
+            SetRow(label: appState.localizedAppString("Open exported files"),
+                   hint: appState.localizedAppString("Reveals each export in Finder after saving.")) {
                 STSwitch(isOn: .constant(true))
                     .opacity(0.6)
             }
@@ -247,9 +270,9 @@ struct SettingsView: View {
     private func advancedRows(appState: AppState) -> some View {
         @Bindable var appState = appState
 
-        SetRow(label: "Translation engine",
-               hint: "Runs locally via Apple Translation.") {
-            Text("On-device")
+        SetRow(label: appState.localizedAppString("Translation engine"),
+               hint: appState.localizedAppString("Runs locally via Apple Translation.")) {
+            Text("On-device", bundle: .module)
                 .font(STTheme.bodyFont(size: 13, weight: .medium))
                 .foregroundStyle(STTheme.ink)
                 .padding(.horizontal, 12)
@@ -260,8 +283,8 @@ struct SettingsView: View {
                 )
         }
 
-        SetRow(label: "Show debug recognition panel",
-               hint: "Surface raw / effective / displayed text in the control window for tuning.") {
+        SetRow(label: appState.localizedAppString("Show debug recognition panel"),
+               hint: appState.localizedAppString("Surface raw / effective / displayed text in the control window for tuning.")) {
             STSwitch(isOn: $appState.debugPanelExpanded)
         }
     }
@@ -367,6 +390,7 @@ private struct STSegmented<T: Hashable>: View {
 }
 
 private struct LanguagePicker: View {
+    @Environment(AppState.self) private var appState
     @Binding var selection: Locale.Language
     @State private var presented = false
 
@@ -375,7 +399,7 @@ private struct LanguagePicker: View {
             presented.toggle()
         } label: {
             HStack(spacing: 0) {
-                Text(matchedSupportedLanguage(for: selection)?.name ?? selection.minimalIdentifier)
+                Text(AppState.localizedDisplayName(for: selection, in: appState.appInterfaceLocale))
                     .font(STTheme.bodyFont(size: 13, weight: .medium))
                     .foregroundStyle(STTheme.ink)
                     .padding(.horizontal, 12)
@@ -411,7 +435,7 @@ private struct LanguagePicker: View {
                             presented = false
                         } label: {
                             HStack {
-                                Text(language.name)
+                                Text(AppState.localizedDisplayName(for: language.locale, in: appState.appInterfaceLocale))
                                     .font(STTheme.bodyFont(size: 13, weight: .medium))
                                     .foregroundStyle(STTheme.ink)
                                 Spacer()
@@ -443,10 +467,84 @@ private struct LanguagePicker: View {
     }
 
     private func matchedSupportedLanguage(for selection: Locale.Language) -> AppState.SupportedLanguage? {
-        let minimal = selection.minimalIdentifier.lowercased()
-        return AppState.supportedLanguages.first { language in
-            let candidate = language.id.lowercased()
-            return candidate == minimal || candidate.hasPrefix("\(minimal)-") || minimal.hasPrefix(candidate)
+        AppState.supportedLanguage(for: selection)
+    }
+}
+
+private struct AppLanguagePicker: View {
+    @Environment(AppState.self) private var appState
+    @Binding var selection: AppState.AppDisplayLanguage
+    @State private var presented = false
+
+    var body: some View {
+        Button {
+            presented.toggle()
+        } label: {
+            HStack(spacing: 0) {
+                Text(appState.localizedAppDisplayLanguageName(selection))
+                    .font(STTheme.bodyFont(size: 13, weight: .medium))
+                    .foregroundStyle(STTheme.ink)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .frame(minWidth: 180, alignment: .leading)
+
+                Rectangle()
+                    .fill(STTheme.ruleHard)
+                    .frame(width: 1, height: 16)
+                    .padding(.vertical, 7)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(STTheme.inkTertiary)
+                    .frame(width: 30, height: 32)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(STTheme.panel)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(STTheme.ruleHard, lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $presented, arrowEdge: .top) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(AppState.AppDisplayLanguage.allCases) { option in
+                        Button {
+                            selection = option
+                            presented = false
+                        } label: {
+                            HStack {
+                                Text(appState.localizedAppDisplayLanguageName(option))
+                                    .font(STTheme.bodyFont(size: 13, weight: .medium))
+                                    .foregroundStyle(STTheme.ink)
+                                Spacer()
+                                if selection == option {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(STTheme.accent)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.clear)
+                        }
+                        .buttonStyle(.plain)
+
+                        if option != AppState.AppDisplayLanguage.allCases.last {
+                            Rectangle()
+                                .fill(STTheme.rule)
+                                .frame(height: 1)
+                        }
+                    }
+                }
+            }
+            .frame(width: 240, height: 176)
+            .padding(8)
+            .background(STTheme.panel)
         }
     }
 }

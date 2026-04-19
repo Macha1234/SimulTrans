@@ -68,3 +68,78 @@
 "Hide dock icon" = "Dock アイコンを隠す";
 "Dim overlay when silent" = "無音時にオーバーレイを暗くする";
 "Show debug recognition panel" = "認識デバッグパネルを表示";
+
+/* Overlay and debug */
+"TIME" = "時刻";
+"SOURCE · %@" = "原文 · %@";
+"TRANSLATION · %@" = "翻訳 · %@";
+"LIVE" = "ライブ";
+"Waiting for the next speaker…" = "次の話者を待っています…";
+"waiting for someone to speak…" = "誰かが話し始めるのを待っています…";
+"%lld entries" = "%lld 件";
+"Export transcript" = "書き出し";
+"Text Size · %lld pt" = "文字サイズ · %lld pt";
+"Text size · %lld pt" = "文字サイズ · %lld pt";
+"System note" = "システムメモ";
+"Screen Recording permission is required the first time you translate system audio." = "システム音声を初めて翻訳する際は、画面収録の権限が必要です。";
+"Microphone permission is required the first time you translate microphone input." = "マイク入力を初めて翻訳する際は、マイクの権限が必要です。";
+"Raw recognizer text" = "認識エンジンの生テキスト";
+"Effective text" = "処理後テキスト";
+"Displayed live text" = "現在表示中のテキスト";
+"Current translation" = "現在の翻訳";
+"Last final recognizer text" = "直近の final テキスト";
+"Recent recognition updates" = "最近の認識更新";
+"Debug recognition" = "認識デバッグ";
+"raw %lld" = "raw %lld";
+"No data yet" = "まだデータはありません";
+"empty" = "空";
+"raw" = "raw";
+"effective" = "処理後";
+"shown" = "表示";
+"Listening" = "待機中";
+"Partial" = "途中結果";
+"Final" = "確定";
+"Stopped" = "停止";
+"Idle" = "アイドル";
+
+/* Settings window */
+"Settings" = "設定";
+"How SimulTrans behaves." = "SimulTrans の動作を設定します。";
+"Source and target." = "原文と言語の行き先を設定します。";
+"How the floating window looks." = "フローティングウインドウの見た目を調整します。";
+"Keyboard shortcuts." = "キーボードショートカット。";
+"Saving transcripts." = "文字起こしの保存設定。";
+"Diagnostics and engine." = "診断とエンジン情報。";
+"Run as a pure menu bar app (takes effect on next launch)." = "純粋なメニューバーアプリとして動作します（次回起動時に反映）。";
+"Fades the overlay to ~30% opacity after 10s of silence." = "10 秒間無音が続くと、オーバーレイを約 30%% まで薄くします。";
+"Source language" = "原文の言語";
+"What you expect to hear." = "聞こえてくると想定している言語です。";
+"Translate to" = "翻訳先";
+"Apple Translation runs on-device when the language pair is downloaded." = "必要な言語ペアがダウンロード済みなら、Apple Translation が端末上で動作します。";
+"Background opacity of the floating overlay." = "フローティングオーバーレイ背景の不透明度です。";
+"Toggle overlay" = "オーバーレイを切り替える";
+"Coming soon — global shortcut to show / hide the floating window." = "近日対応。グローバルショートカットでオーバーレイを表示 / 非表示にします。";
+"Start / stop translation" = "翻訳の開始 / 停止";
+"Coming soon." = "近日対応。";
+"Default format" = "既定の形式";
+"Plain text with timestamp + source + translation." = "タイムスタンプ、原文、翻訳を含むプレーンテキストです。";
+"Open exported files" = "書き出したファイルを開く";
+"Reveals each export in Finder after saving." = "保存後に Finder で書き出しファイルを表示します。";
+"Translation engine" = "翻訳エンジン";
+"Runs locally via Apple Translation." = "Apple Translation により端末上で動作します。";
+"On-device" = "オンデバイス";
+"Surface raw / effective / displayed text in the control window for tuning." = "調整用に、raw / 処理後 / 表示中テキストをコントロールウインドウに表示します。";
+
+/* App menu and panels */
+"About SimulTrans" = "SimulTrans について";
+"Settings…" = "設定…";
+"Hide SimulTrans" = "SimulTrans を隠す";
+"Hide Others" = "ほかを隠す";
+"Show All" = "すべて表示";
+"Quit SimulTrans" = "SimulTrans を終了";
+"SimulTrans Settings" = "SimulTrans 設定";
+"Welcome to SimulTrans" = "SimulTrans へようこそ";
+"Save Transcript" = "文字起こしを保存";
+
+/* Onboarding headline */
+"We need a little\naccess before we begin." = "始める前に、\n少しだけ権限が必要です。";

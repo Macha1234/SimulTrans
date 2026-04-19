@@ -68,3 +68,78 @@
 "Hide dock icon" = "隐藏 Dock 图标";
 "Dim overlay when silent" = "静音时变暗悬浮窗";
 "Show debug recognition panel" = "显示识别调试面板";
+
+/* Overlay and debug */
+"TIME" = "时间";
+"SOURCE · %@" = "原文 · %@";
+"TRANSLATION · %@" = "译文 · %@";
+"LIVE" = "实时";
+"Waiting for the next speaker…" = "等待下一位说话者…";
+"waiting for someone to speak…" = "等待有人开始说话…";
+"%lld entries" = "%lld 条";
+"Export transcript" = "导出记录";
+"Text Size · %lld pt" = "文字大小 · %lld pt";
+"Text size · %lld pt" = "文字大小 · %lld pt";
+"System note" = "系统提示";
+"Screen Recording permission is required the first time you translate system audio." = "首次翻译系统音频时，需要屏幕录制权限。";
+"Microphone permission is required the first time you translate microphone input." = "首次翻译麦克风输入时，需要麦克风权限。";
+"Raw recognizer text" = "识别器原始文本";
+"Effective text" = "处理后文本";
+"Displayed live text" = "当前显示文本";
+"Current translation" = "当前翻译";
+"Last final recognizer text" = "最近一次 final 文本";
+"Recent recognition updates" = "最近识别更新";
+"Debug recognition" = "识别调试";
+"raw %lld" = "原始 %lld";
+"No data yet" = "暂无数据";
+"empty" = "空";
+"raw" = "原始";
+"effective" = "处理后";
+"shown" = "显示";
+"Listening" = "监听中";
+"Partial" = "识别中";
+"Final" = "最终";
+"Stopped" = "已停止";
+"Idle" = "待机";
+
+/* Settings window */
+"Settings" = "设置";
+"How SimulTrans behaves." = "配置 SimulTrans 的整体行为。";
+"Source and target." = "设置原文语言和目标语言。";
+"How the floating window looks." = "调整悬浮窗的显示方式。";
+"Keyboard shortcuts." = "键盘快捷操作。";
+"Saving transcripts." = "管理转写导出。";
+"Diagnostics and engine." = "诊断与引擎信息。";
+"Run as a pure menu bar app (takes effect on next launch)." = "作为纯菜单栏应用运行（下次启动生效）。";
+"Fades the overlay to ~30% opacity after 10s of silence." = "静音 10 秒后将悬浮窗淡化到约 30%% 不透明度。";
+"Source language" = "源语言";
+"What you expect to hear." = "你预计会听到的语言。";
+"Translate to" = "翻译为";
+"Apple Translation runs on-device when the language pair is downloaded." = "当系统已下载对应语言包时，将使用 Apple Translation 在本机翻译。";
+"Background opacity of the floating overlay." = "悬浮窗背景的不透明度。";
+"Toggle overlay" = "切换悬浮窗";
+"Coming soon — global shortcut to show / hide the floating window." = "即将推出：使用全局快捷键显示 / 隐藏悬浮窗。";
+"Start / stop translation" = "开始 / 停止翻译";
+"Coming soon." = "即将推出。";
+"Default format" = "默认格式";
+"Plain text with timestamp + source + translation." = "纯文本，包含时间戳、原文和译文。";
+"Open exported files" = "打开导出文件";
+"Reveals each export in Finder after saving." = "每次保存后在 Finder 中显示导出文件。";
+"Translation engine" = "翻译引擎";
+"Runs locally via Apple Translation." = "通过 Apple Translation 在本机运行。";
+"On-device" = "本机";
+"Surface raw / effective / displayed text in the control window for tuning." = "在控制窗口显示原始 / 处理后 / 最终显示文本，便于调试。";
+
+/* App menu and panels */
+"About SimulTrans" = "关于 SimulTrans";
+"Settings…" = "设置…";
+"Hide SimulTrans" = "隐藏 SimulTrans";
+"Hide Others" = "隐藏其他";
+"Show All" = "显示全部";
+"Quit SimulTrans" = "退出 SimulTrans";
+"SimulTrans Settings" = "SimulTrans 设置";
+"Welcome to SimulTrans" = "欢迎使用 SimulTrans";
+"Save Transcript" = "保存转写记录";
+
+/* Onboarding headline */
+"We need a little\naccess before we begin." = "开始之前，\n需要先授予一点权限。";

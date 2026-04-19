@@ -43,6 +43,7 @@ struct ControlWindowView: View {
         }
         .frame(minWidth: STTheme.controlWindowSize.width, minHeight: STTheme.controlWindowSize.height)
         .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .environment(\.locale, appState.appInterfaceLocale)
         .onChange(of: appState.appearancePreference) { _, newValue in
             NSApp.appearance = newValue.nsAppearance
         }
@@ -168,11 +169,9 @@ struct ControlWindowView: View {
                 fieldDivider()
 
                 fieldRow {
-                    HStack(spacing: 4) {
-                        Text("Text Size · \(Int(appState.fontSize)) pt")
-                            .font(STTheme.monoFont(size: 11))
-                            .foregroundStyle(STTheme.ink)
-                    }
+                    Text("Text Size · \(Int(appState.fontSize)) pt", bundle: .module)
+                        .font(STTheme.monoFont(size: 11))
+                        .foregroundStyle(STTheme.ink)
                 } control: {
                     StudioSlider(value: Binding(
                         get: { Double(appState.fontSize) },
@@ -188,7 +187,7 @@ struct ControlWindowView: View {
 
     private func errorCard(_ error: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("System note")
+            Text("System note", bundle: .module)
                 .font(STTheme.monoFont(size: 10))
                 .tracking(1.8)
                 .foregroundStyle(STTheme.accent)
@@ -205,8 +204,8 @@ struct ControlWindowView: View {
 
     private var permissionNote: some View {
         Text(appState.audioSource == .system
-             ? "Screen Recording permission is required the first time you translate system audio."
-             : "Microphone permission is required the first time you translate microphone input.")
+             ? appState.localizedAppString("Screen Recording permission is required the first time you translate system audio.")
+             : appState.localizedAppString("Microphone permission is required the first time you translate microphone input."))
             .font(STTheme.bodyFont(size: 13))
             .foregroundStyle(STTheme.inkSecondary)
             .multilineTextAlignment(.leading)
@@ -271,15 +270,15 @@ struct ControlWindowView: View {
             DisclosureGroup(isExpanded: $appState.debugPanelExpanded) {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 10) {
-                        debugBlock(title: "Raw recognizer text", text: appState.rawRecognitionText)
-                        debugBlock(title: "Effective text", text: appState.effectiveRecognitionText)
-                        debugBlock(title: "Displayed live text", text: appState.currentOriginalText)
-                        debugBlock(title: "Current translation", text: appState.currentTranslatedText)
-                        debugBlock(title: "Last final recognizer text", text: appState.lastFinalRecognitionText)
+                        debugBlock(title: appState.localizedAppString("Raw recognizer text"), text: appState.rawRecognitionText)
+                        debugBlock(title: appState.localizedAppString("Effective text"), text: appState.effectiveRecognitionText)
+                        debugBlock(title: appState.localizedAppString("Displayed live text"), text: appState.currentOriginalText)
+                        debugBlock(title: appState.localizedAppString("Current translation"), text: appState.currentTranslatedText)
+                        debugBlock(title: appState.localizedAppString("Last final recognizer text"), text: appState.lastFinalRecognitionText)
 
                         if !appState.debugRecognitionEntries.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Recent recognition updates")
+                                Text("Recent recognition updates", bundle: .module)
                                     .font(STTheme.monoFont(size: 10))
                                     .tracking(1.6)
                                     .foregroundStyle(STTheme.inkTertiary)
@@ -288,8 +287,9 @@ struct ControlWindowView: View {
                                 ForEach(appState.debugRecognitionEntries) { entry in
                                     VStack(alignment: .leading, spacing: 8) {
                                         HStack {
-                                            Text(entry.phase.uppercased())
+                                            Text(localizedRecognitionPhase(entry.phase))
                                                 .font(STTheme.monoFont(size: 10))
+                                                .textCase(.uppercase)
                                                 .foregroundStyle(entry.phase == "final" ? STTheme.green : STTheme.accent)
 
                                             Spacer()
@@ -299,9 +299,9 @@ struct ControlWindowView: View {
                                                 .foregroundStyle(STTheme.inkTertiary)
                                         }
 
-                                        debugSnapshotRow(title: "raw", text: entry.rawText)
-                                        debugSnapshotRow(title: "effective", text: entry.effectiveText)
-                                        debugSnapshotRow(title: "shown", text: entry.displayedText)
+                                        debugSnapshotRow(title: appState.localizedAppString("raw"), text: entry.rawText)
+                                        debugSnapshotRow(title: appState.localizedAppString("effective"), text: entry.effectiveText)
+                                        debugSnapshotRow(title: appState.localizedAppString("shown"), text: entry.displayedText)
                                     }
                                     .padding(10)
                                     .background(
@@ -321,18 +321,19 @@ struct ControlWindowView: View {
                 .frame(maxHeight: 248)
             } label: {
                 HStack(spacing: 10) {
-                    Text("Debug recognition")
+                    Text("Debug recognition", bundle: .module)
                         .font(STTheme.displayFont(size: 16, weight: .medium))
                         .foregroundStyle(STTheme.ink)
 
                     Spacer()
 
-                    Text(appState.recognitionPhase.uppercased())
+                    Text(localizedRecognitionPhase(appState.recognitionPhase))
                         .font(STTheme.monoFont(size: 10))
                         .tracking(1.4)
+                        .textCase(.uppercase)
                         .foregroundStyle(STTheme.inkSecondary)
 
-                    Text("raw \(appState.rawRecognitionText.count)")
+                    Text("raw \(appState.rawRecognitionText.count)", bundle: .module)
                         .font(STTheme.monoFont(size: 10))
                         .foregroundStyle(STTheme.inkTertiary)
                 }
@@ -349,7 +350,7 @@ struct ControlWindowView: View {
                     guard !appState.isRunning else { return }
                     appState.audioSource = source
                 } label: {
-                    Text(source.localizedName)
+                    Text(source.localizedName(in: appState.appInterfaceLocale))
                         .font(STTheme.monoFont(size: 11))
                         .tracking(0.5)
                         .lineLimit(1)
@@ -386,16 +387,11 @@ struct ControlWindowView: View {
             isPresented.wrappedValue.toggle()
         } label: {
             HStack(spacing: 0) {
-                HStack(spacing: 8) {
-                    if let flag = matchedSupportedLanguage(for: selection)?.flag {
-                        Text(flag).font(.system(size: 14))
-                    }
-                    Text(languageName(for: selection))
-                        .font(STTheme.bodyFont(size: 13, weight: .medium))
-                        .foregroundStyle(STTheme.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
-                }
+                Text(languageName(for: selection))
+                    .font(STTheme.bodyFont(size: 13, weight: .medium))
+                    .foregroundStyle(STTheme.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .frame(minWidth: 150, alignment: .leading)
@@ -429,7 +425,6 @@ struct ControlWindowView: View {
                             isPresented.wrappedValue = false
                         } label: {
                             HStack(spacing: 10) {
-                                Text(language.flag).font(.system(size: 16))
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(language.nativeName)
                                         .font(STTheme.bodyFont(size: 13, weight: .medium))
@@ -530,7 +525,7 @@ struct ControlWindowView: View {
                 .tracking(1.2)
                 .foregroundStyle(STTheme.inkTertiary)
 
-            Text(text.isEmpty ? "No data yet" : text)
+            Text(text.isEmpty ? appState.localizedAppString("No data yet") : text)
                 .font(STTheme.monoFont(size: 11, weight: .regular))
                 .foregroundStyle(text.isEmpty ? STTheme.inkTertiary : STTheme.inkSecondary)
                 .textSelection(.enabled)
@@ -554,7 +549,7 @@ struct ControlWindowView: View {
                 .foregroundStyle(STTheme.inkTertiary)
                 .frame(width: 58, alignment: .leading)
 
-            Text(text.isEmpty ? "empty" : text)
+            Text(text.isEmpty ? appState.localizedAppString("empty") : text)
                 .font(STTheme.monoFont(size: 10, weight: .regular))
                 .foregroundStyle(text.isEmpty ? STTheme.inkTertiary : STTheme.inkSecondary)
                 .textSelection(.enabled)
@@ -571,7 +566,7 @@ struct ControlWindowView: View {
     }
 
     private func languageName(for selection: Locale.Language) -> String {
-        matchedSupportedLanguage(for: selection)?.name ?? selection.minimalIdentifier
+        AppState.localizedDisplayName(for: selection, in: appState.appInterfaceLocale)
     }
 
     private func languageCode(for selection: Locale.Language) -> String {
@@ -590,6 +585,21 @@ struct ControlWindowView: View {
         if normalized.hasPrefix("ru") { return "RU" }
         if normalized.hasPrefix("ar") { return "AR" }
         return identifier.prefix(2).uppercased()
+    }
+
+    private func localizedRecognitionPhase(_ phase: String) -> String {
+        switch phase {
+        case "listening":
+            return appState.localizedAppString("Listening")
+        case "partial":
+            return appState.localizedAppString("Partial")
+        case "final":
+            return appState.localizedAppString("Final")
+        case "stopped":
+            return appState.localizedAppString("Stopped")
+        default:
+            return appState.localizedAppString("Idle")
+        }
     }
 
     private var versionString: String {

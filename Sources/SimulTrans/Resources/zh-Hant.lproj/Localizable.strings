@@ -1,0 +1,145 @@
+/* Header / status */
+"ON AIR" = "直播中";
+"STANDBY" = "待機";
+"ON AIR · %@" = "直播中 · %@";
+"vol. 01 / live room" = "第 01 期 / 直播間";
+
+/* Sections */
+"Input" = "輸入";
+"Overlay" = "懸浮窗";
+"Debug" = "偵錯";
+"Audio Input" = "音訊輸入";
+"Source Language" = "來源語言";
+"Translate To" = "目標語言";
+"Opacity" = "不透明度";
+
+/* Footer / actions */
+"START TRANSLATION" = "開始翻譯";
+"STOP TRANSLATION" = "停止翻譯";
+"START" = "開始";
+"STOP" = "停止";
+"EXPORT" = "匯出";
+"CLEAR HISTORY" = "清除記錄";
+"OPEN WINDOW" = "開啟視窗";
+"%lld entries recorded" = "已記錄 %lld 筆";
+"%lld entries · %@" = "%lld 筆 · %@";
+
+/* Audio sources */
+"System Audio" = "系統音訊";
+"Microphone" = "麥克風";
+
+/* Menubar popover summary */
+"Source" = "來源";
+"Target" = "目標";
+"Visible" = "顯示中";
+"Hidden" = "已隱藏";
+
+/* Onboarding */
+"Step 02 / 03 · Permissions" = "第 02 / 03 步 · 權限";
+"— SimulTrans —" = "— SimulTrans —";
+"Screen recording" = "螢幕錄製";
+"Needed to capture system audio from meetings, webinars, and livestreams." = "用於擷取會議、網路研討會與直播中的系統音訊。";
+"Optional. Only if you plan to translate a live conversation in the room." = "選用。只有在你要翻譯現場對話時才需要。";
+"Speech recognition" = "語音辨識";
+"Apple's on-device speech engine powers transcription." = "由 Apple 的裝置端語音引擎驅動轉寫。";
+"SimulTrans runs entirely on this device. These permissions stay between you and macOS — nothing is sent anywhere." = "SimulTrans 完全在本機運作。這些權限只存在於你與 macOS 之間，資料不會傳送到任何地方。";
+"Granted" = "已允許";
+"Open Settings" = "開啟設定";
+"Grant" = "允許";
+"Skip for now" = "稍後再說";
+"Continue →" = "繼續 →";
+
+/* Settings tabs */
+"General" = "一般";
+"Languages" = "語言";
+"Hotkeys" = "快捷鍵";
+"Export" = "匯出";
+"Advanced" = "進階";
+
+/* Settings · General */
+"Theme" = "外觀";
+"Auto" = "自動";
+"Light" = "淺色";
+"Dark" = "深色";
+"App Language" = "App 顯示語言";
+"Use system language" = "跟隨系統";
+"Launch at login" = "登入時自動啟動";
+"Show menu bar icon" = "顯示選單列圖示";
+"Hide dock icon" = "隱藏 Dock 圖示";
+"Dim overlay when silent" = "安靜時將懸浮窗調暗";
+"Show debug recognition panel" = "顯示辨識偵錯面板";
+
+/* Overlay and debug */
+"TIME" = "時間";
+"SOURCE · %@" = "原文 · %@";
+"TRANSLATION · %@" = "翻譯 · %@";
+"LIVE" = "即時";
+"Waiting for the next speaker…" = "等待下一位說話者…";
+"waiting for someone to speak…" = "等待有人開始說話…";
+"%lld entries" = "%lld 筆";
+"Export transcript" = "匯出逐字稿";
+"Text Size · %lld pt" = "文字大小 · %lld pt";
+"Text size · %lld pt" = "文字大小 · %lld pt";
+"System note" = "系統提示";
+"Screen Recording permission is required the first time you translate system audio." = "第一次翻譯系統音訊時，需要螢幕錄製權限。";
+"Microphone permission is required the first time you translate microphone input." = "第一次翻譯麥克風輸入時，需要麥克風權限。";
+"Raw recognizer text" = "辨識器原始文字";
+"Effective text" = "處理後文字";
+"Displayed live text" = "目前顯示文字";
+"Current translation" = "目前翻譯";
+"Last final recognizer text" = "最近一次 final 文字";
+"Recent recognition updates" = "最近辨識更新";
+"Debug recognition" = "辨識偵錯";
+"raw %lld" = "原始 %lld";
+"No data yet" = "目前沒有資料";
+"empty" = "空";
+"raw" = "原始";
+"effective" = "處理後";
+"shown" = "顯示";
+"Listening" = "監聽中";
+"Partial" = "辨識中";
+"Final" = "最終";
+"Stopped" = "已停止";
+"Idle" = "待機";
+
+/* Settings window */
+"Settings" = "設定";
+"How SimulTrans behaves." = "設定 SimulTrans 的整體行為。";
+"Source and target." = "設定原文語言與目標語言。";
+"How the floating window looks." = "調整懸浮窗的顯示方式。";
+"Keyboard shortcuts." = "鍵盤快捷操作。";
+"Saving transcripts." = "管理逐字稿匯出。";
+"Diagnostics and engine." = "診斷與引擎資訊。";
+"Run as a pure menu bar app (takes effect on next launch)." = "以純選單列 App 方式執行（下次啟動生效）。";
+"Fades the overlay to ~30% opacity after 10s of silence." = "安靜 10 秒後，將懸浮窗淡化到約 30%% 不透明度。";
+"Source language" = "來源語言";
+"What you expect to hear." = "你預計會聽到的語言。";
+"Translate to" = "翻譯為";
+"Apple Translation runs on-device when the language pair is downloaded." = "當系統已下載對應語言包時，會使用 Apple Translation 在本機翻譯。";
+"Background opacity of the floating overlay." = "懸浮窗背景的不透明度。";
+"Toggle overlay" = "切換懸浮窗";
+"Coming soon — global shortcut to show / hide the floating window." = "即將推出：使用全域快捷鍵顯示 / 隱藏懸浮窗。";
+"Start / stop translation" = "開始 / 停止翻譯";
+"Coming soon." = "即將推出。";
+"Default format" = "預設格式";
+"Plain text with timestamp + source + translation." = "純文字，包含時間戳、原文與翻譯。";
+"Open exported files" = "開啟匯出檔案";
+"Reveals each export in Finder after saving." = "每次儲存後在 Finder 中顯示匯出檔案。";
+"Translation engine" = "翻譯引擎";
+"Runs locally via Apple Translation." = "透過 Apple Translation 在本機運作。";
+"On-device" = "本機";
+"Surface raw / effective / displayed text in the control window for tuning." = "在控制視窗顯示原始 / 處理後 / 最終顯示文字，便於調校。";
+
+/* App menu and panels */
+"About SimulTrans" = "關於 SimulTrans";
+"Settings…" = "設定…";
+"Hide SimulTrans" = "隱藏 SimulTrans";
+"Hide Others" = "隱藏其他";
+"Show All" = "顯示全部";
+"Quit SimulTrans" = "結束 SimulTrans";
+"SimulTrans Settings" = "SimulTrans 設定";
+"Welcome to SimulTrans" = "歡迎使用 SimulTrans";
+"Save Transcript" = "儲存逐字稿";
+
+/* Onboarding headline */
+"We need a little\naccess before we begin." = "開始之前，\n需要先取得一點權限。";

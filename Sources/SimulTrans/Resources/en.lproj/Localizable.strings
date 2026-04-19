@@ -68,3 +68,78 @@
 "Hide dock icon" = "Hide dock icon";
 "Dim overlay when silent" = "Dim overlay when silent";
 "Show debug recognition panel" = "Show debug recognition panel";
+
+/* Overlay and debug */
+"TIME" = "TIME";
+"SOURCE · %@" = "SOURCE · %@";
+"TRANSLATION · %@" = "TRANSLATION · %@";
+"LIVE" = "LIVE";
+"Waiting for the next speaker…" = "Waiting for the next speaker…";
+"waiting for someone to speak…" = "waiting for someone to speak…";
+"%lld entries" = "%lld entries";
+"Export transcript" = "Export transcript";
+"Text Size · %lld pt" = "Text Size · %lld pt";
+"Text size · %lld pt" = "Text size · %lld pt";
+"System note" = "System note";
+"Screen Recording permission is required the first time you translate system audio." = "Screen Recording permission is required the first time you translate system audio.";
+"Microphone permission is required the first time you translate microphone input." = "Microphone permission is required the first time you translate microphone input.";
+"Raw recognizer text" = "Raw recognizer text";
+"Effective text" = "Effective text";
+"Displayed live text" = "Displayed live text";
+"Current translation" = "Current translation";
+"Last final recognizer text" = "Last final recognizer text";
+"Recent recognition updates" = "Recent recognition updates";
+"Debug recognition" = "Debug recognition";
+"raw %lld" = "raw %lld";
+"No data yet" = "No data yet";
+"empty" = "empty";
+"raw" = "raw";
+"effective" = "effective";
+"shown" = "shown";
+"Listening" = "Listening";
+"Partial" = "Partial";
+"Final" = "Final";
+"Stopped" = "Stopped";
+"Idle" = "Idle";
+
+/* Settings window */
+"Settings" = "Settings";
+"How SimulTrans behaves." = "How SimulTrans behaves.";
+"Source and target." = "Source and target.";
+"How the floating window looks." = "How the floating window looks.";
+"Keyboard shortcuts." = "Keyboard shortcuts.";
+"Saving transcripts." = "Saving transcripts.";
+"Diagnostics and engine." = "Diagnostics and engine.";
+"Run as a pure menu bar app (takes effect on next launch)." = "Run as a pure menu bar app (takes effect on next launch).";
+"Fades the overlay to ~30% opacity after 10s of silence." = "Fades the overlay to ~30%% opacity after 10s of silence.";
+"Source language" = "Source language";
+"What you expect to hear." = "What you expect to hear.";
+"Translate to" = "Translate to";
+"Apple Translation runs on-device when the language pair is downloaded." = "Apple Translation runs on-device when the language pair is downloaded.";
+"Background opacity of the floating overlay." = "Background opacity of the floating overlay.";
+"Toggle overlay" = "Toggle overlay";
+"Coming soon — global shortcut to show / hide the floating window." = "Coming soon — global shortcut to show / hide the floating window.";
+"Start / stop translation" = "Start / stop translation";
+"Coming soon." = "Coming soon.";
+"Default format" = "Default format";
+"Plain text with timestamp + source + translation." = "Plain text with timestamp + source + translation.";
+"Open exported files" = "Open exported files";
+"Reveals each export in Finder after saving." = "Reveals each export in Finder after saving.";
+"Translation engine" = "Translation engine";
+"Runs locally via Apple Translation." = "Runs locally via Apple Translation.";
+"On-device" = "On-device";
+"Surface raw / effective / displayed text in the control window for tuning." = "Surface raw / effective / displayed text in the control window for tuning.";
+
+/* App menu and panels */
+"About SimulTrans" = "About SimulTrans";
+"Settings…" = "Settings…";
+"Hide SimulTrans" = "Hide SimulTrans";
+"Hide Others" = "Hide Others";
+"Show All" = "Show All";
+"Quit SimulTrans" = "Quit SimulTrans";
+"SimulTrans Settings" = "SimulTrans Settings";
+"Welcome to SimulTrans" = "Welcome to SimulTrans";
+"Save Transcript" = "Save Transcript";
+
+/* Onboarding headline */
+"We need a little\naccess before we begin." = "We need a little\naccess before we begin.";

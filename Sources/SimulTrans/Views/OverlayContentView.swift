@@ -68,6 +68,7 @@ struct OverlayContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .environment(\.locale, appState.overlayInterfaceLocale)
         .translationTask(appState.translationConfig) { session in
             appState.translationSession = session
         }
@@ -79,7 +80,7 @@ struct OverlayContentView: View {
                 .fill(appState.isRunning ? STTheme.green : STTheme.inkTertiary)
                 .frame(width: 7, height: 7)
 
-            Text(appState.isRunning ? "ON AIR" : "STANDBY")
+            Text(appState.isRunning ? "ON AIR" : "STANDBY", bundle: .module)
                 .font(STTheme.monoFont(size: 10))
                 .tracking(2)
                 .foregroundStyle(STTheme.inkSecondary)
@@ -98,10 +99,11 @@ struct OverlayContentView: View {
 
             Spacer()
 
-            Text("\(appState.transcriptEntries.count) ENTRIES")
+            Text("\(appState.transcriptEntries.count) entries", bundle: .module)
                 .font(STTheme.monoFont(size: 10, weight: .regular))
                 .tracking(1.4)
                 .foregroundStyle(STTheme.inkTertiary)
+                .textCase(.uppercase)
 
             if !appState.transcriptEntries.isEmpty {
                 Button(action: { onExport?() }) {
@@ -110,7 +112,7 @@ struct OverlayContentView: View {
                         .foregroundStyle(STTheme.inkSecondary)
                 }
                 .buttonStyle(.plain)
-                .help("Export transcript")
+                .help(overlayLocalizedString("Export transcript"))
             }
         }
         .padding(.horizontal, 18)
@@ -125,14 +127,14 @@ struct OverlayContentView: View {
 
     private var columnHeader: some View {
         HStack(spacing: 0) {
-            Text("TIME")
+            Text("TIME", bundle: .module)
                 .frame(width: 64, alignment: .leading)
 
-            Text("SOURCE · \(languageName(for: appState.sourceLanguage))")
+            Text("SOURCE · \(languageName(for: appState.sourceLanguage))", bundle: .module)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 14)
 
-            Text("TRANSLATION · \(languageName(for: appState.targetLanguage))")
+            Text("TRANSLATION · \(languageName(for: appState.targetLanguage))", bundle: .module)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 14)
         }
@@ -240,7 +242,7 @@ struct OverlayContentView: View {
     @ViewBuilder
     private func listeningStateView() -> some View {
         HStack(alignment: .center, spacing: 0) {
-            Text("LIVE")
+            Text("LIVE", bundle: .module)
                 .font(STTheme.monoFont(size: 10))
                 .foregroundStyle(STTheme.green)
                 .frame(width: 64, alignment: .leading)
@@ -251,7 +253,7 @@ struct OverlayContentView: View {
                     .frame(width: 6, height: 6)
                     .modifier(PulseModifier())
 
-                Text("Waiting for the next speaker…")
+                Text("Waiting for the next speaker…", bundle: .module)
                     .font(STTheme.displayItalicFont(size: 22, weight: .regular))
                     .foregroundStyle(STTheme.inkSecondary)
             }
@@ -274,7 +276,7 @@ struct OverlayContentView: View {
             WaveformPlaceholder()
                 .foregroundStyle(STTheme.inkTertiary)
 
-            Text("waiting for someone to speak…")
+            Text("waiting for someone to speak…", bundle: .module)
                 .font(STTheme.displayItalicFont(size: 22, weight: .regular))
                 .foregroundStyle(STTheme.inkSecondary)
         }
@@ -284,12 +286,7 @@ struct OverlayContentView: View {
     }
 
     private func languageName(for selection: Locale.Language) -> String {
-        let minimal = selection.minimalIdentifier.lowercased()
-        let match = AppState.supportedLanguages.first { language in
-            let candidate = language.id.lowercased()
-            return candidate == minimal || candidate.hasPrefix("\(minimal)-") || minimal.hasPrefix(candidate)
-        }
-        return match?.name ?? selection.minimalIdentifier
+        AppState.localizedDisplayName(for: selection, in: appState.overlayInterfaceLocale)
     }
 
     private func languageCode(for selection: Locale.Language) -> String {
@@ -306,6 +303,10 @@ struct OverlayContentView: View {
         if identifier.hasPrefix("ru") { return "RU" }
         if identifier.hasPrefix("ar") { return "AR" }
         return selection.minimalIdentifier.prefix(2).uppercased()
+    }
+
+    private func overlayLocalizedString(_ key: String) -> String {
+        appState.localizedOverlayString(key)
     }
 }
 

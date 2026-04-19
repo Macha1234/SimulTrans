@@ -45,7 +45,7 @@ This round of work focused on making the app feel more like a polished desktop p
 
 ## Screenshot Tour
 
-The app follows the host system language, so the screenshots below may show a mix of English, Chinese, and Japanese UI text depending on the capture environment.
+The control and settings windows follow the host macOS system language. The floating overlay uses the current target language for its own chrome, so the screenshots below may show different UI languages depending on the route being demonstrated.
 
 ### First-Run Permission Onboarding
 

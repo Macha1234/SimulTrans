@@ -161,11 +161,15 @@ enum AppearancePreference: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var label: String {
+    @MainActor
+    func label(in locale: Locale) -> String {
         switch self {
-        case .auto:  return "Auto"
-        case .light: return "Light"
-        case .dark:  return "Dark"
+        case .auto:
+            return AppState.localizedString("Auto", localizationIdentifier: locale.identifier)
+        case .light:
+            return AppState.localizedString("Light", localizationIdentifier: locale.identifier)
+        case .dark:
+            return AppState.localizedString("Dark", localizationIdentifier: locale.identifier)
         }
     }
 

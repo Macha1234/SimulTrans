@@ -19,6 +19,7 @@ struct MenubarPopoverView: View {
         }
         .frame(width: 320, height: 360)
         .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .environment(\.locale, appState.appInterfaceLocale)
     }
 
     private var header: some View {
@@ -67,9 +68,9 @@ struct MenubarPopoverView: View {
         VStack(spacing: 0) {
             row(labelKey: "Source", value: languageName(for: appState.sourceLanguage))
             row(labelKey: "Target", value: languageName(for: appState.targetLanguage))
-            row(labelKey: "Input",  value: appState.audioSource.localizedName)
+            row(labelKey: "Input",  value: appState.audioSource.localizedName(in: appState.appInterfaceLocale))
             row(labelKey: "Overlay",
-                value: String(localized: appState.isRunning ? "Visible" : "Hidden", bundle: .module),
+                value: appState.localizedAppString(appState.isRunning ? "Visible" : "Hidden"),
                 emphasised: appState.isRunning)
         }
         .padding(.horizontal, 12)
@@ -138,12 +139,7 @@ struct MenubarPopoverView: View {
     }
 
     private func languageName(for selection: Locale.Language) -> String {
-        let minimal = selection.minimalIdentifier.lowercased()
-        let match = AppState.supportedLanguages.first { language in
-            let candidate = language.id.lowercased()
-            return candidate == minimal || candidate.hasPrefix("\(minimal)-") || minimal.hasPrefix(candidate)
-        }
-        return match?.name ?? selection.minimalIdentifier
+        AppState.localizedDisplayName(for: selection, in: appState.appInterfaceLocale)
     }
 
     private func languageCode(for selection: Locale.Language) -> String {

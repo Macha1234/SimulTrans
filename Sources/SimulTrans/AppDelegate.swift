@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissions.refresh()
         applyMenuBarIconPreference()
         observeMenuBarIconPreference()
+        observeAppDisplayLanguage()
 
         if !UserDefaults.standard.bool(forKey: Self.onboardingDefaultsKey) {
             // Defer briefly so the control window is visible behind the onboarding sheet.
@@ -49,29 +50,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(NSMenuItem(title: "About SimulTrans",
+        appMenu.addItem(NSMenuItem(title: appState.localizedAppString("About SimulTrans"),
                                    action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
                                    keyEquivalent: ""))
         appMenu.addItem(.separator())
-        let settingsItem = NSMenuItem(title: "Settings…",
+        let settingsItem = NSMenuItem(title: appState.localizedAppString("Settings…"),
                                       action: #selector(openSettings),
                                       keyEquivalent: ",")
         settingsItem.target = self
         appMenu.addItem(settingsItem)
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Hide SimulTrans",
+        appMenu.addItem(NSMenuItem(title: appState.localizedAppString("Hide SimulTrans"),
                                    action: #selector(NSApplication.hide(_:)),
                                    keyEquivalent: "h"))
-        let hideOthers = NSMenuItem(title: "Hide Others",
+        let hideOthers = NSMenuItem(title: appState.localizedAppString("Hide Others"),
                                     action: #selector(NSApplication.hideOtherApplications(_:)),
                                     keyEquivalent: "h")
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         appMenu.addItem(hideOthers)
-        appMenu.addItem(NSMenuItem(title: "Show All",
+        appMenu.addItem(NSMenuItem(title: appState.localizedAppString("Show All"),
                                    action: #selector(NSApplication.unhideAllApplications(_:)),
                                    keyEquivalent: ""))
         appMenu.addItem(.separator())
-        appMenu.addItem(NSMenuItem(title: "Quit SimulTrans",
+        appMenu.addItem(NSMenuItem(title: appState.localizedAppString("Quit SimulTrans"),
                                    action: #selector(NSApplication.terminate(_:)),
                                    keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
@@ -102,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "SimulTrans Settings"
+        window.title = appState.localizedAppString("SimulTrans Settings")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -131,6 +132,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.observeMenuBarIconPreference()
             }
         }
+    }
+
+    private func observeAppDisplayLanguage() {
+        withObservationTracking { [appState] in
+            _ = appState.appDisplayLanguage
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.refreshLocalizedChrome()
+                self.observeAppDisplayLanguage()
+            }
+        }
+    }
+
+    private func refreshLocalizedChrome() {
+        installMainMenu()
+        settingsWindow?.title = appState.localizedAppString("SimulTrans Settings")
+        onboardingWindow?.title = appState.localizedAppString("Welcome to SimulTrans")
     }
 
     private func applyMenuBarIconPreference() {
@@ -227,7 +246,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Welcome to SimulTrans"
+        window.title = appState.localizedAppString("Welcome to SimulTrans")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -351,7 +370,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !entries.isEmpty else { return }
 
         let panel = NSSavePanel()
-        panel.title = "Save Transcript"
+        panel.title = appState.localizedAppString("Save Transcript")
         panel.nameFieldStringValue = "SimulTrans_\(Self.dateString()).txt"
         panel.allowedContentTypes = [.plainText]
 
