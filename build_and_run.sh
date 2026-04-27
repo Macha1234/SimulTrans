@@ -6,11 +6,12 @@ APP_NAME="SimulTrans"
 APP_TEMPLATE="$ROOT_DIR/AppTemplate"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/${APP_NAME}.app"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/Applications}"
+INSTALL_DIR="${INSTALL_DIR:-/Applications}"
 INSTALLED_APP_BUNDLE="$INSTALL_DIR/${APP_NAME}.app"
 CONFIGURATION="${CONFIGURATION:-debug}"
 SIGNING_ID="${SIGNING_ID:-}"
 PREFERRED_SIGNING_ID="${PREFERRED_SIGNING_ID:-SimulTrans Dev}"
+KEEP_DIST_APP="${KEEP_DIST_APP:-0}"
 
 if [[ "$CONFIGURATION" == "release" ]]; then
     BUILD_OUTPUT_DIR="$ROOT_DIR/.build/release"
@@ -78,6 +79,10 @@ prepare_app_bundle
 resolve_signing_identity
 sign_app_bundle
 install_app_bundle
+
+if [[ "$KEEP_DIST_APP" != "1" ]]; then
+    rm -rf "$APP_BUNDLE"
+fi
 
 echo "アプリを起動します..."
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
