@@ -11,19 +11,6 @@ struct ControlWindowView: View {
     @State private var targetLanguageMenuPresented = false
 
     var body: some View {
-        scaledContent
-            .frame(width: STTheme.controlWindowSize.width,
-                   height: STTheme.controlWindowSize.height,
-                   alignment: .topLeading)
-            .clipped()
-            .preferredColorScheme(appState.appearancePreference.colorScheme)
-            .environment(\.locale, appState.appInterfaceLocale)
-            .onChange(of: appState.appearancePreference) { _, newValue in
-                NSApp.appearance = newValue.nsAppearance
-            }
-    }
-
-    private var scaledContent: some View {
         ZStack {
             STTheme.bg
                 .ignoresSafeArea()
@@ -32,7 +19,7 @@ struct ControlWindowView: View {
                 masthead
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 10) {
                         inputSection
                         overlaySection
 
@@ -46,55 +33,58 @@ struct ControlWindowView: View {
                             permissionNote
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                    .padding(.bottom, 18)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
                 }
 
                 footerActions
             }
         }
-        .frame(width: STTheme.controlWindowBaseSize.width,
-               height: STTheme.controlWindowBaseSize.height,
-               alignment: .topLeading)
-        .scaleEffect(STTheme.controlWindowScale, anchor: .topLeading)
+        .frame(width: STTheme.controlWindowSize.width,
+               height: STTheme.controlWindowSize.height)
+        .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .environment(\.locale, appState.appInterfaceLocale)
+        .onChange(of: appState.appearancePreference) { _, newValue in
+            NSApp.appearance = newValue.nsAppearance
+        }
     }
 
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("vol. 01 / live room", bundle: .module)
-                .font(STTheme.monoFont(size: 10))
-                .tracking(2)
+                .font(STTheme.monoFont(size: 9))
+                .tracking(1.8)
                 .foregroundStyle(STTheme.accent)
                 .textCase(.uppercase)
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
 
             (
                 Text("Simul")
-                    .font(STTheme.displayFont(size: 40, weight: .medium))
+                    .font(STTheme.displayFont(size: 34, weight: .medium))
                 +
                 Text("Trans")
-                    .font(STTheme.displayItalicFont(size: 40, weight: .regular))
+                    .font(STTheme.displayItalicFont(size: 34, weight: .regular))
             )
-            .tracking(-1.4)
+            .tracking(-1.1)
             .foregroundStyle(STTheme.ink)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Circle()
                     .fill(appState.isRunning ? STTheme.green : STTheme.inkTertiary)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 5, height: 5)
 
                 if appState.isRunning, appState.sessionStartedAt != nil {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         Text("ON AIR · \(AppState.formatElapsed(from: appState.sessionStartedAt, now: context.date))", bundle: .module)
-                            .font(STTheme.monoFont(size: 11))
-                            .tracking(1.8)
+                            .font(STTheme.monoFont(size: 10))
+                            .tracking(1.5)
                             .foregroundStyle(STTheme.inkSecondary)
                     }
                 } else {
                     Text("STANDBY", bundle: .module)
-                        .font(STTheme.monoFont(size: 11))
-                        .tracking(1.8)
+                        .font(STTheme.monoFont(size: 10))
+                        .tracking(1.5)
                         .foregroundStyle(STTheme.inkSecondary)
                 }
 
@@ -102,14 +92,14 @@ struct ControlWindowView: View {
                     .foregroundStyle(STTheme.inkTertiary)
 
                 Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage))")
-                    .font(STTheme.monoFont(size: 11))
+                    .font(STTheme.monoFont(size: 10))
                     .foregroundStyle(STTheme.inkSecondary)
             }
-            .padding(.top, 10)
+            .padding(.top, 8)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 28)
-        .padding(.bottom, 20)
+        .padding(.horizontal, 18)
+        .padding(.top, 24)
+        .padding(.bottom, 15)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -119,13 +109,13 @@ struct ControlWindowView: View {
     }
 
     private var inputSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             sectionHeader("Input")
 
             VStack(spacing: 0) {
                 fieldRow {
                     Text("Audio Input", bundle: .module)
-                        .font(STTheme.bodyFont(size: 13))
+                        .font(STTheme.bodyFont(size: 12))
                         .foregroundStyle(STTheme.inkSecondary)
                 } control: {
                     audioSourceSelector
@@ -135,7 +125,7 @@ struct ControlWindowView: View {
 
                 fieldRow {
                     Text("Source Language", bundle: .module)
-                        .font(STTheme.bodyFont(size: 13))
+                        .font(STTheme.bodyFont(size: 12))
                         .foregroundStyle(STTheme.inkSecondary)
                 } control: {
                     languageDropdown(selection: appState.sourceLanguage,
@@ -148,7 +138,7 @@ struct ControlWindowView: View {
 
                 fieldRow {
                     Text("Translate To", bundle: .module)
-                        .font(STTheme.bodyFont(size: 13))
+                        .font(STTheme.bodyFont(size: 12))
                         .foregroundStyle(STTheme.inkSecondary)
                 } control: {
                     languageDropdown(selection: appState.targetLanguage,
@@ -162,26 +152,26 @@ struct ControlWindowView: View {
     }
 
     private var overlaySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             sectionHeader("Overlay")
 
             VStack(spacing: 0) {
                 fieldRow {
                     Text("Opacity", bundle: .module)
-                        .font(STTheme.bodyFont(size: 13))
+                        .font(STTheme.bodyFont(size: 12))
                         .foregroundStyle(STTheme.inkSecondary)
                 } control: {
                     StudioSlider(value: $appState.overlayOpacity,
                                  range: 0.0...1.0,
                                  step: 0.05,
-                                 width: 140)
+                                 width: 122)
                 }
 
                 fieldDivider()
 
                 fieldRow {
                     Text("Text Size · \(Int(appState.fontSize)) pt", bundle: .module)
-                        .font(STTheme.monoFont(size: 11))
+                        .font(STTheme.monoFont(size: 10))
                         .foregroundStyle(STTheme.ink)
                 } control: {
                     StudioSlider(value: Binding(
@@ -189,7 +179,7 @@ struct ControlWindowView: View {
                         set: { appState.fontSize = CGFloat($0) }
                     ), range: 12...26,
                     step: 1,
-                    width: 140)
+                    width: 122)
                 }
             }
             .background(surface(fill: STTheme.panel))
@@ -205,28 +195,28 @@ struct ControlWindowView: View {
                 .textCase(.uppercase)
 
             Text(error)
-                .font(STTheme.bodyFont(size: 13))
+                .font(STTheme.bodyFont(size: 12))
                 .foregroundStyle(STTheme.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(12)
         .background(surface(fill: STTheme.accentSoft))
     }
 
     private var permissionNote: some View {
         Text(appState.audioSource == .system
              ? appState.localizedAppString("Screen Recording permission is required the first time you translate system audio.")
-             : appState.localizedAppString("Microphone permission is required the first time you translate microphone input."))
-            .font(STTheme.bodyFont(size: 13))
+            : appState.localizedAppString("Microphone permission is required the first time you translate microphone input."))
+            .font(STTheme.bodyFont(size: 12))
             .foregroundStyle(STTheme.inkSecondary)
             .multilineTextAlignment(.leading)
-            .padding(14)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(surface(fill: STTheme.panelAlt.opacity(0.72)))
     }
 
     private var footerActions: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             Button(action: {
                 if appState.isRunning {
                     onStop()
@@ -240,11 +230,11 @@ struct ControlWindowView: View {
                         .frame(width: 9, height: 9)
 
                     Text(appState.isRunning ? "STOP TRANSLATION" : "START TRANSLATION", bundle: .module)
-                        .font(STTheme.monoFont(size: 12))
-                        .tracking(2)
+                        .font(STTheme.monoFont(size: 11))
+                        .tracking(1.8)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .padding(.vertical, 12)
                 .foregroundStyle(Color.white)
                 .background(STTheme.accent)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -265,7 +255,7 @@ struct ControlWindowView: View {
             .tracking(1)
             .foregroundStyle(STTheme.inkTertiary)
         }
-        .padding(16)
+        .padding(12)
         .background(STTheme.panel)
         .overlay(alignment: .top) {
             Rectangle()
@@ -275,7 +265,7 @@ struct ControlWindowView: View {
     }
 
     private var debugPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             sectionHeader("Debug")
 
             DisclosureGroup(isExpanded: $appState.debugPanelExpanded) {
@@ -333,7 +323,7 @@ struct ControlWindowView: View {
             } label: {
                 HStack(spacing: 10) {
                     Text("Debug recognition", bundle: .module)
-                        .font(STTheme.displayFont(size: 16, weight: .medium))
+                        .font(STTheme.displayFont(size: 15, weight: .medium))
                         .foregroundStyle(STTheme.ink)
 
                     Spacer()
@@ -362,13 +352,13 @@ struct ControlWindowView: View {
                     appState.audioSource = source
                 } label: {
                     Text(source.localizedName(in: appState.appInterfaceLocale))
-                        .font(STTheme.monoFont(size: 11))
+                        .font(STTheme.monoFont(size: 10))
                         .tracking(0.5)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
                         .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
                         .foregroundStyle(appState.audioSource == source ? STTheme.bg : STTheme.inkSecondary)
                         .background(appState.audioSource == source ? STTheme.ink : Color.clear)
                 }
@@ -383,7 +373,7 @@ struct ControlWindowView: View {
             }
         }
         .padding(2)
-        .frame(width: 228)
+        .frame(width: 198)
         .background(
             RoundedRectangle(cornerRadius: 4)
                 .stroke(STTheme.ruleHard, lineWidth: 1)
@@ -403,9 +393,9 @@ struct ControlWindowView: View {
                     .foregroundStyle(STTheme.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .frame(minWidth: 150, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(minWidth: 128, alignment: .leading)
 
                 Rectangle()
                     .fill(STTheme.ruleHard)
@@ -415,7 +405,7 @@ struct ControlWindowView: View {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(STTheme.inkTertiary)
-                    .frame(width: 34, height: 32)
+                    .frame(width: 30, height: 29)
             }
             .background(
                 RoundedRectangle(cornerRadius: 4)
@@ -481,7 +471,7 @@ struct ControlWindowView: View {
                 .font(STTheme.monoFont(size: 11))
                 .tracking(1.5)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
                 .foregroundStyle(STTheme.ink)
                 .background(
                     RoundedRectangle(cornerRadius: 4)
@@ -494,7 +484,7 @@ struct ControlWindowView: View {
     private func sectionHeader(_ key: LocalizedStringKey) -> some View {
         Text(key, bundle: .module)
             .font(STTheme.monoFont(size: 10))
-            .tracking(2)
+            .tracking(1.8)
             .foregroundStyle(STTheme.inkTertiary)
             .textCase(.uppercase)
     }
@@ -509,8 +499,8 @@ struct ControlWindowView: View {
             control()
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 11)
-        .frame(minHeight: 44)
+        .padding(.vertical, 9)
+        .frame(minHeight: 38)
     }
 
     private func fieldDivider() -> some View {
