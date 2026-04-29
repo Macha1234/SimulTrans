@@ -47,9 +47,12 @@ enum STTheme {
     // Foreground used on top of `accent` (always near-white paper tone)
     static let onAccent = Color(.sRGB, red: 255 / 255, green: 248 / 255, blue: 242 / 255, opacity: 1)
 
-    static let controlWindowSize = CGSize(width: 440, height: 720)
-    static let overlayWindowSize = CGSize(width: 720, height: 420)
-    static let overlayMinSize = CGSize(width: 560, height: 240)
+    static let controlWindowBaseSize = CGSize(width: 440, height: 720)
+    static let controlWindowScale: CGFloat = 2.0 / 3.0
+    static let controlWindowSize = CGSize(width: controlWindowBaseSize.width * controlWindowScale,
+                                          height: controlWindowBaseSize.height * controlWindowScale)
+    static let overlayWindowSize = CGSize(width: 680, height: 300)
+    static let overlayMinSize = CGSize(width: 440, height: 180)
     static let settingsWindowSize = CGSize(width: 720, height: 520)
 
     // MARK: - Fonts

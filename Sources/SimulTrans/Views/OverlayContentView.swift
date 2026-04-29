@@ -16,12 +16,12 @@ struct OverlayContentView: View {
 
         ZStack {
             RoundedRectangle(cornerRadius: 10)
-                .fill(STTheme.bg.opacity(appState.overlayOpacity))
-                .background(.ultraThinMaterial.opacity(0.92))
+                .fill(STTheme.bg.opacity(panelOpacity))
+                .background(.ultraThinMaterial.opacity(panelOpacity * 0.92))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(STTheme.rule, lineWidth: 1)
+                        .stroke(STTheme.rule.opacity(panelOpacity), lineWidth: 1)
                 )
 
             VStack(spacing: 0) {
@@ -75,52 +75,52 @@ struct OverlayContentView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Circle()
                 .fill(appState.isRunning ? STTheme.green : STTheme.inkTertiary)
-                .frame(width: 7, height: 7)
+                .frame(width: 6, height: 6)
 
             Text(appState.isRunning ? "ON AIR" : "STANDBY", bundle: .module)
-                .font(STTheme.monoFont(size: 10))
-                .tracking(2)
+                .font(STTheme.monoFont(size: 9))
+                .tracking(1.7)
                 .foregroundStyle(STTheme.inkSecondary)
 
             if appState.isRunning, appState.sessionStartedAt != nil {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage)) · \(AppState.formatElapsed(from: appState.sessionStartedAt, now: context.date))")
-                        .font(STTheme.monoFont(size: 10, weight: .regular))
+                        .font(STTheme.monoFont(size: 9, weight: .regular))
                         .foregroundStyle(STTheme.inkTertiary)
                 }
             } else {
                 Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage))")
-                    .font(STTheme.monoFont(size: 10, weight: .regular))
+                    .font(STTheme.monoFont(size: 9, weight: .regular))
                     .foregroundStyle(STTheme.inkTertiary)
             }
 
             Spacer()
 
             Text("\(appState.transcriptEntries.count) entries", bundle: .module)
-                .font(STTheme.monoFont(size: 10, weight: .regular))
-                .tracking(1.4)
+                .font(STTheme.monoFont(size: 9, weight: .regular))
+                .tracking(1.2)
                 .foregroundStyle(STTheme.inkTertiary)
                 .textCase(.uppercase)
 
             if !appState.transcriptEntries.isEmpty {
                 Button(action: { onExport?() }) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(STTheme.inkSecondary)
                 }
                 .buttonStyle(.plain)
                 .help(overlayLocalizedString("Export transcript"))
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(STTheme.bg.opacity(0.72))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(STTheme.bg.opacity(0.72 * panelOpacity))
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(STTheme.rule)
+                .fill(STTheme.rule.opacity(panelOpacity))
                 .frame(height: 1)
         }
     }
@@ -128,24 +128,23 @@ struct OverlayContentView: View {
     private var columnHeader: some View {
         HStack(spacing: 0) {
             Text("TIME", bundle: .module)
-                .frame(width: 64, alignment: .leading)
+                .frame(width: timeColumnWidth, alignment: .leading)
 
-            Text("SOURCE · \(languageName(for: appState.sourceLanguage))", bundle: .module)
+            Text("SOURCE ABOVE · \(languageName(for: appState.sourceLanguage))", bundle: .module)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
+                .padding(.leading, 10)
 
             Text("TRANSLATION · \(languageName(for: appState.targetLanguage))", bundle: .module)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
+                .foregroundStyle(STTheme.accent)
         }
-        .font(STTheme.monoFont(size: 10))
-        .tracking(1.5)
+        .font(STTheme.monoFont(size: 9))
+        .tracking(1.2)
         .foregroundStyle(STTheme.inkTertiary)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(STTheme.rule)
+                .fill(STTheme.rule.opacity(panelOpacity))
                 .frame(height: 1)
         }
     }
@@ -154,34 +153,34 @@ struct OverlayContentView: View {
     private func entryView(entry: TranscriptEntry) -> some View {
         HStack(alignment: .top, spacing: 0) {
             Text(timeFmt.string(from: entry.timestamp))
-                .font(STTheme.monoFont(size: 10, weight: .regular))
+                .font(STTheme.monoFont(size: 9, weight: .regular))
                 .foregroundStyle(STTheme.inkTertiary)
-                .frame(width: 64, alignment: .leading)
-                .padding(.top, 2)
+                .frame(width: timeColumnWidth, alignment: .leading)
+                .padding(.top, 3)
 
-            Text(entry.originalText)
-                .font(STTheme.bodyFont(size: max(14, appState.fontSize - 2)))
-                .foregroundStyle(STTheme.inkSecondary)
-                .lineSpacing(4)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .padding(.trailing, 12)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.originalText)
+                    .font(STTheme.bodyFont(size: sourceFontSize))
+                    .foregroundStyle(STTheme.inkSecondary)
+                    .lineSpacing(2)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(entry.translatedText ?? "…")
-                .font(STTheme.displayFont(size: max(15, appState.fontSize - 1), weight: .medium))
-                .foregroundStyle(entry.translatedText == nil ? STTheme.inkTertiary : STTheme.ink)
-                .lineSpacing(4)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
+                Text(entry.translatedText ?? "…")
+                    .font(STTheme.displayFont(size: translationFontSize, weight: .medium))
+                    .foregroundStyle(entry.translatedText == nil ? STTheme.inkTertiary : STTheme.ink)
+                    .lineSpacing(3)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.leading, 10)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(STTheme.rule)
+                .fill(STTheme.rule.opacity(panelOpacity))
                 .frame(height: 1)
         }
     }
@@ -189,52 +188,52 @@ struct OverlayContentView: View {
     @ViewBuilder
     private func liveEntryView() -> some View {
         ZStack(alignment: .leading) {
-            STTheme.accentSoft
+            STTheme.accentSoft.opacity(panelOpacity)
 
             Rectangle()
-                .fill(STTheme.accent)
+                .fill(STTheme.accent.opacity(panelOpacity))
                 .frame(width: 3)
 
             HStack(alignment: .top, spacing: 0) {
                 HStack(spacing: 5) {
                     Circle()
                         .fill(STTheme.accent)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 5, height: 5)
                     Text(timeFmt.string(from: Date()))
                 }
-                .font(STTheme.monoFont(size: 10))
+                .font(STTheme.monoFont(size: 9))
                 .foregroundStyle(STTheme.accent)
-                .frame(width: 64, alignment: .leading)
-                .padding(.top, 2)
+                .frame(width: timeColumnWidth, alignment: .leading)
+                .padding(.top, 3)
 
-                (
-                    Text(appState.currentOriginalText)
-                        .font(STTheme.bodyFont(size: max(14, appState.fontSize - 2)))
-                        .foregroundStyle(STTheme.inkSecondary)
-                    +
-                    Text("▍")
-                        .font(STTheme.bodyFont(size: max(14, appState.fontSize - 2)))
-                        .foregroundStyle(STTheme.inkSecondary.opacity(0.45))
-                )
-                .lineSpacing(4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
-                .padding(.trailing, 12)
-
-                Text(appState.currentTranslatedText.isEmpty ? "…" : appState.currentTranslatedText)
-                    .font(STTheme.displayFont(size: max(15, appState.fontSize - 1), weight: .medium))
-                    .foregroundStyle(appState.currentTranslatedText.isEmpty ? STTheme.inkTertiary : STTheme.ink)
-                    .lineSpacing(4)
+                VStack(alignment: .leading, spacing: 4) {
+                    (
+                        Text(appState.currentOriginalText)
+                            .font(STTheme.bodyFont(size: sourceFontSize))
+                            .foregroundStyle(STTheme.inkSecondary)
+                        +
+                        Text("▍")
+                            .font(STTheme.bodyFont(size: sourceFontSize))
+                            .foregroundStyle(STTheme.inkSecondary.opacity(0.45))
+                    )
+                    .lineSpacing(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 14)
+
+                    Text(appState.currentTranslatedText.isEmpty ? "…" : appState.currentTranslatedText)
+                        .font(STTheme.displayFont(size: translationFontSize, weight: .medium))
+                        .foregroundStyle(appState.currentTranslatedText.isEmpty ? STTheme.inkTertiary : STTheme.ink)
+                        .lineSpacing(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.leading, 10)
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(STTheme.rule)
+                .fill(STTheme.rule.opacity(panelOpacity))
                 .frame(height: 1)
         }
     }
@@ -243,29 +242,29 @@ struct OverlayContentView: View {
     private func listeningStateView() -> some View {
         HStack(alignment: .center, spacing: 0) {
             Text("LIVE", bundle: .module)
-                .font(STTheme.monoFont(size: 10))
+                .font(STTheme.monoFont(size: 9))
                 .foregroundStyle(STTheme.green)
-                .frame(width: 64, alignment: .leading)
+                .frame(width: timeColumnWidth, alignment: .leading)
 
             HStack(spacing: 8) {
                 Circle()
                     .fill(STTheme.green)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 5, height: 5)
                     .modifier(PulseModifier())
 
                 Text("Waiting for the next speaker…", bundle: .module)
-                    .font(STTheme.displayItalicFont(size: 22, weight: .regular))
+                    .font(STTheme.displayItalicFont(size: 18, weight: .regular))
                     .foregroundStyle(STTheme.inkSecondary)
             }
-            .padding(.leading, 14)
+            .padding(.leading, 10)
 
             Spacer()
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(STTheme.rule)
+                .fill(STTheme.rule.opacity(panelOpacity))
                 .frame(height: 1)
         }
     }
@@ -277,12 +276,26 @@ struct OverlayContentView: View {
                 .foregroundStyle(STTheme.inkTertiary)
 
             Text("waiting for someone to speak…", bundle: .module)
-                .font(STTheme.displayItalicFont(size: 22, weight: .regular))
+                .font(STTheme.displayItalicFont(size: 18, weight: .regular))
                 .foregroundStyle(STTheme.inkSecondary)
         }
-        .frame(maxWidth: .infinity, minHeight: 200, maxHeight: .infinity)
-        .padding(.horizontal, 32)
-        .padding(.vertical, 32)
+        .frame(maxWidth: .infinity, minHeight: 140, maxHeight: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 24)
+    }
+
+    private var timeColumnWidth: CGFloat { 58 }
+
+    private var panelOpacity: Double {
+        min(max(appState.overlayOpacity, 0), 1)
+    }
+
+    private var sourceFontSize: CGFloat {
+        max(10, appState.fontSize * 0.68)
+    }
+
+    private var translationFontSize: CGFloat {
+        max(18, appState.fontSize * 1.28)
     }
 
     private func languageName(for selection: Locale.Language) -> String {

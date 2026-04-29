@@ -214,7 +214,7 @@ struct SettingsView: View {
 
         SetRow(label: appState.localizedAppString("Opacity"),
                hint: appState.localizedAppString("Background opacity of the floating overlay.")) {
-            SliderControl(value: $appState.overlayOpacity, range: 0.3...1.0, step: 0.05)
+            SliderControl(value: $appState.overlayOpacity, range: 0.0...1.0, step: 0.05)
         }
         SetRow(label: String(format: appState.localizedAppString("Text size · %lld pt"),
                              locale: appState.appInterfaceLocale,

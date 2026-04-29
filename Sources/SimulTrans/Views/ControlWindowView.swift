@@ -11,6 +11,19 @@ struct ControlWindowView: View {
     @State private var targetLanguageMenuPresented = false
 
     var body: some View {
+        scaledContent
+            .frame(width: STTheme.controlWindowSize.width,
+                   height: STTheme.controlWindowSize.height,
+                   alignment: .topLeading)
+            .clipped()
+            .preferredColorScheme(appState.appearancePreference.colorScheme)
+            .environment(\.locale, appState.appInterfaceLocale)
+            .onChange(of: appState.appearancePreference) { _, newValue in
+                NSApp.appearance = newValue.nsAppearance
+            }
+    }
+
+    private var scaledContent: some View {
         ZStack {
             STTheme.bg
                 .ignoresSafeArea()
@@ -41,12 +54,10 @@ struct ControlWindowView: View {
                 footerActions
             }
         }
-        .frame(minWidth: STTheme.controlWindowSize.width, minHeight: STTheme.controlWindowSize.height)
-        .preferredColorScheme(appState.appearancePreference.colorScheme)
-        .environment(\.locale, appState.appInterfaceLocale)
-        .onChange(of: appState.appearancePreference) { _, newValue in
-            NSApp.appearance = newValue.nsAppearance
-        }
+        .frame(width: STTheme.controlWindowBaseSize.width,
+               height: STTheme.controlWindowBaseSize.height,
+               alignment: .topLeading)
+        .scaleEffect(STTheme.controlWindowScale, anchor: .topLeading)
     }
 
     private var masthead: some View {
@@ -161,7 +172,7 @@ struct ControlWindowView: View {
                         .foregroundStyle(STTheme.inkSecondary)
                 } control: {
                     StudioSlider(value: $appState.overlayOpacity,
-                                 range: 0.3...1.0,
+                                 range: 0.0...1.0,
                                  step: 0.05,
                                  width: 140)
                 }
