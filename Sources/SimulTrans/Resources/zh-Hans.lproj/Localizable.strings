@@ -9,6 +9,7 @@
 "Overlay" = "悬浮窗";
 "Debug" = "调试";
 "Audio Input" = "音频输入";
+"Recognition Engine" = "识别引擎";
 "Source Language" = "源语言";
 "Translate To" = "目标语言";
 "Opacity" = "不透明度";
@@ -128,6 +129,10 @@
 "Translation engine" = "翻译引擎";
 "Runs locally via Apple Translation." = "通过 Apple Translation 在本机运行。";
 "On-device" = "本机";
+"Recognition engine" = "识别引擎";
+"Uses Apple's on-device Speech framework." = "使用 Apple 本机 Speech 框架。";
+"Requires whisper.cpp server and a ggml large-v3-turbo model." = "需要本地 whisper.cpp server 和 ggml large-v3-turbo 模型。";
+"Requires the SimulTrans Qwen sidecar and a local Qwen3-ASR-1.7B model." = "需要本地 Qwen sidecar 和 Qwen3-ASR-1.7B 模型。";
 "Surface raw / effective / displayed text in the control window for tuning." = "在控制窗口显示原始 / 处理后 / 最终显示文本，便于调试。";
 
 /* App menu and panels */
@@ -143,3 +148,87 @@
 
 /* Onboarding headline */
 "We need a little\naccess before we begin." = "开始之前，\n需要先授予一点权限。";
+
+/* Product redesign V2 */
+"New live session" = "新建同传会话";
+"Choose the source, recognition engine and language route." = "选择声音来源、识别引擎和翻译方向。";
+"Audio source" = "声音来源";
+"Recognition" = "语音识别";
+"Language route" = "翻译方向";
+"Swap languages" = "互换语言";
+"Apple · This Mac" = "Apple · 本机";
+"Whisper · This Mac" = "Whisper · 本机";
+"Qwen · Mini PC" = "Qwen · Mini PC";
+"Live session" = "实时会话";
+"Waking the recognition engine…" = "正在唤醒识别引擎…";
+"Listening for speech…" = "正在等待语音…";
+"The first recognized phrase will appear here." = "识别到的第一句话会显示在这里。";
+"Translating…" = "正在翻译…";
+"Live captions" = "实时字幕";
+"A focused overlay designed for video and meetings." = "为视频和会议设计的专注字幕悬浮窗。";
+"Show" = "显示";
+"Hide" = "隐藏";
+"Translation only" = "仅译文";
+"Bilingual" = "双语字幕";
+"Transcript" = "完整记录";
+"Spoken words appear here" = "识别到的原文显示在这里";
+"Translation appears here" = "译文显示在这里";
+"Latest result" = "最新结果";
+"entries" = "条记录";
+"Copy latest translation" = "复制最新译文";
+"Needs attention" = "需要处理";
+"Try again" = "重试";
+"Use Apple instead" = "改用 Apple";
+"Dismiss" = "忽略";
+"Clear this session?" = "清空当前会话？";
+"Clear session" = "清空会话";
+"Cancel" = "取消";
+"This removes the current transcript. Export it first if you want to keep a copy." = "这会删除当前转写记录。如果需要保留，请先导出。";
+"Hide captions" = "隐藏字幕";
+"Show captions" = "显示字幕";
+"Start translation" = "开始同传";
+"Stop translation" = "停止同传";
+"Cancel startup" = "取消启动";
+"Starting" = "正在启动";
+"Transcribing" = "正在识别";
+"Live" = "同传中";
+"Attention" = "需处理";
+"Ready" = "已就绪";
+"Ready when you are" = "准备就绪";
+"Audio & Recognition" = "声音与识别";
+"App behavior and appearance" = "应用行为与外观";
+"Choose where speech recognition runs" = "选择语音识别的运行位置";
+"Source and target languages" = "源语言与目标语言";
+"Caption layout and readability" = "字幕布局与可读性";
+"Diagnostics and data path" = "诊断信息与数据路径";
+"Capture the whole Mac or use a microphone." = "捕获 Mac 系统声音，或使用麦克风。";
+"Processing location" = "处理位置";
+"Caption layout" = "字幕布局";
+"Choose translation only, bilingual captions or a full transcript." = "选择仅译文、双语字幕或完整记录。";
+"Show recognition diagnostics" = "显示识别诊断";
+"Inspect raw and displayed text when recognition behaves unexpectedly." = "识别异常时查看原始文本与实际显示文本。";
+"This Mac" = "本机";
+"This Mac · Local model" = "本机 · 本地模型";
+"Mini PC · Private tunnel" = "Mini PC · 私有隧道";
+"Speech recognition stays on this Mac." = "语音识别始终在这台 Mac 上完成。";
+"Audio is processed by the local Whisper service on this Mac." = "声音由这台 Mac 上的本地 Whisper 服务处理。";
+"Audio is sent through your private encrypted tunnel to the Mini PC, not to a cloud provider." = "声音通过你的私有加密隧道发送到 Mini PC，不会上传到云服务商。";
+"Runs Qwen3-ASR-1.7B on the Mini PC GPU through the secure local SSH tunnel." = "通过安全的本地 SSH 隧道，在 Mini PC GPU 上运行 Qwen3-ASR-1.7B。";
+"Current route" = "当前翻译方向";
+"Latest caption" = "最新字幕";
+"Start a session to see live captions here." = "开始同传后，实时字幕会显示在这里。";
+"Open Control Center" = "打开控制中心";
+"Context AI" = "上下文 AI";
+"Apple only" = "仅 Apple";
+"Translation quality" = "翻译质量";
+"Context AI shows an Apple draft first, then improves final subtitles on your Mini PC." = "上下文 AI 会先显示 Apple 草稿，再由 Mini PC 改进最终字幕。";
+"Last ASR processing" = "最近识别耗时";
+"Last ASR queue" = "最近识别排队";
+"Last translation" = "最近翻译耗时";
+"Translation" = "翻译";
+
+"Back to latest" = "回到最新";
+
+/* Shared permissions page */
+"Permissions" = "权限";
+"Choose the permissions for your audio source. You can change access at any time in System Settings." = "根据所用音频来源设置权限。你随时可以在系统设置中更改访问权限。";

@@ -16,7 +16,8 @@ prepare_app_bundle() {
     rm -rf "$APP_BUNDLE"
     mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
     cp "$APP_TEMPLATE/Contents/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
-    cp "$APP_TEMPLATE/Contents/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+    cp "$APP_TEMPLATE/Contents/Resources/AppIconGlass.icns" "$APP_BUNDLE/Contents/Resources/AppIconGlass.icns"
+    cp "$APP_TEMPLATE/Contents/Resources/Assets.car" "$APP_BUNDLE/Contents/Resources/Assets.car"
     for lproj in "$APP_TEMPLATE/Contents/Resources/"*.lproj; do
         [[ -d "$lproj" ]] || continue
         cp -R "$lproj" "$APP_BUNDLE/Contents/Resources/"

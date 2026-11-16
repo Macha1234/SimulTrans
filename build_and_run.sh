@@ -12,6 +12,7 @@ CONFIGURATION="${CONFIGURATION:-debug}"
 SIGNING_ID="${SIGNING_ID:-}"
 PREFERRED_SIGNING_ID="${PREFERRED_SIGNING_ID:-SimulTrans Dev}"
 KEEP_DIST_APP="${KEEP_DIST_APP:-0}"
+SKIP_LAUNCH="${SKIP_LAUNCH:-0}"
 
 if [[ "$CONFIGURATION" == "release" ]]; then
     BUILD_OUTPUT_DIR="$ROOT_DIR/.build/release"
@@ -23,7 +24,8 @@ prepare_app_bundle() {
     rm -rf "$APP_BUNDLE"
     mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
     cp "$APP_TEMPLATE/Contents/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
-    cp "$APP_TEMPLATE/Contents/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+    cp "$APP_TEMPLATE/Contents/Resources/AppIconGlass.icns" "$APP_BUNDLE/Contents/Resources/AppIconGlass.icns"
+    cp "$APP_TEMPLATE/Contents/Resources/Assets.car" "$APP_BUNDLE/Contents/Resources/Assets.car"
     # Copy any .lproj folders (InfoPlist.strings localization)
     for lproj in "$APP_TEMPLATE/Contents/Resources/"*.lproj; do
         [[ -d "$lproj" ]] || continue
@@ -84,6 +86,10 @@ if [[ "$KEEP_DIST_APP" != "1" ]]; then
     rm -rf "$APP_BUNDLE"
 fi
 
-echo "アプリを起動します..."
-pkill -x "$APP_NAME" >/dev/null 2>&1 || true
-open "$INSTALLED_APP_BUNDLE"
+if [[ "$SKIP_LAUNCH" == "1" ]]; then
+    echo "インストール完了（起動はスキップしました）"
+else
+    echo "アプリを起動します..."
+    pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+    open "$INSTALLED_APP_BUNDLE"
+fi

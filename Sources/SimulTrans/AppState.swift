@@ -4,6 +4,46 @@ import Translation
 @Observable
 @MainActor
 final class AppState {
+    enum SessionPhase: Equatable {
+        case idle
+        case starting
+        case listening
+        case transcribing
+        case failed
+
+        var isBusy: Bool { self == .starting }
+    }
+
+    enum OverlayLayoutMode: String, CaseIterable, Identifiable {
+        case subtitles
+        case bilingual
+        case transcript
+
+        var id: String { rawValue }
+
+        var localizationKey: String {
+            switch self {
+            case .subtitles: return "Translation only"
+            case .bilingual: return "Bilingual"
+            case .transcript: return "Transcript"
+            }
+        }
+    }
+
+    enum TranslationMode: String, CaseIterable, Identifiable {
+        case hybrid
+        case appleOnly
+
+        var id: String { rawValue }
+
+        var localizationKey: String {
+            switch self {
+            case .hybrid: return "Context AI"
+            case .appleOnly: return "Apple only"
+            }
+        }
+    }
+
     enum AppDisplayLanguage: String, CaseIterable, Identifiable {
         case system
         case english
@@ -88,18 +128,54 @@ final class AppState {
     private static let fallbackTargetLanguageIdentifier = "ja"
     private static let fallbackInterfaceLocalizationIdentifier = "en"
     private static let appDisplayLanguageDefaultsKey = "simultrans.appDisplayLanguage"
+    private static let recognitionEngineDefaultsKey = "simultrans.recognitionEngine"
+    private static let sourceLanguageDefaultsKey = "simultrans.sourceLanguage"
+    private static let targetLanguageDefaultsKey = "simultrans.targetLanguage"
+    private static let overlayOpacityDefaultsKey = "simultrans.overlayOpacity"
+    private static let fontSizeDefaultsKey = "simultrans.fontSize"
+    private static let audioSourceDefaultsKey = "simultrans.audioSource"
+    private static let appearanceDefaultsKey = "simultrans.appearance"
+    private static let overlayLayoutDefaultsKey = "simultrans.overlayLayout"
+    private static let translationModeDefaultsKey = "simultrans.translationMode"
 
     // MARK: - Settings
     var sourceLanguage: Locale.Language {
-        didSet { updateTranslationConfig() }
+        didSet {
+            let identifier = Self.supportedLanguage(for: sourceLanguage)?.id ?? sourceLanguage.maximalIdentifier
+            UserDefaults.standard.set(identifier, forKey: Self.sourceLanguageDefaultsKey)
+            updateTranslationConfig()
+        }
     }
     var targetLanguage: Locale.Language {
-        didSet { updateTranslationConfig() }
+        didSet {
+            let identifier = Self.supportedLanguage(for: targetLanguage)?.id ?? targetLanguage.maximalIdentifier
+            UserDefaults.standard.set(identifier, forKey: Self.targetLanguageDefaultsKey)
+            updateTranslationConfig()
+        }
     }
-    var overlayOpacity: Double = 0.85
-    var fontSize: CGFloat = 16
-    var audioSource: AudioSource = .system
-    var appearancePreference: AppearancePreference = .auto
+    var overlayOpacity: Double = 0.85 {
+        didSet { UserDefaults.standard.set(overlayOpacity, forKey: Self.overlayOpacityDefaultsKey) }
+    }
+    var fontSize: CGFloat = 24 {
+        didSet { UserDefaults.standard.set(Double(fontSize), forKey: Self.fontSizeDefaultsKey) }
+    }
+    var audioSource: AudioSource = .system {
+        didSet { UserDefaults.standard.set(audioSource.rawValue, forKey: Self.audioSourceDefaultsKey) }
+    }
+    var recognitionEngine: RecognitionEngine {
+        didSet {
+            UserDefaults.standard.set(recognitionEngine.rawValue, forKey: Self.recognitionEngineDefaultsKey)
+        }
+    }
+    var appearancePreference: AppearancePreference = .auto {
+        didSet { UserDefaults.standard.set(appearancePreference.rawValue, forKey: Self.appearanceDefaultsKey) }
+    }
+    var overlayLayoutMode: OverlayLayoutMode = .bilingual {
+        didSet { UserDefaults.standard.set(overlayLayoutMode.rawValue, forKey: Self.overlayLayoutDefaultsKey) }
+    }
+    var translationMode: TranslationMode = .hybrid {
+        didSet { UserDefaults.standard.set(translationMode.rawValue, forKey: Self.translationModeDefaultsKey) }
+    }
     var launchAtLogin: Bool = false
     var showMenuBarIcon: Bool = true
     var hideDockIcon: Bool = false
@@ -127,6 +203,8 @@ final class AppState {
 
     // MARK: - Runtime State
     var isRunning: Bool = false
+    var overlayVisible: Bool = false
+    let captionScroll = CaptionScrollState()
     var sessionStartedAt: Date?
     var currentOriginalText: String = ""
     var currentTranslatedText: String = ""
@@ -138,8 +216,21 @@ final class AppState {
     var lastFinalRecognitionText: String = ""
     var recognitionPhase: String = "idle"
     var debugRecognitionEntries: [RecognitionDebugEntry] = []
+    var lastASRProcessingMilliseconds: Int?
+    var lastASRQueueMilliseconds: Int?
+    var lastTranslationMilliseconds: Int?
+    var lastTranslationEngine: String?
+
+    var sessionPhase: SessionPhase {
+        if errorMessage != nil { return .failed }
+        if !isRunning { return .idle }
+        if recognitionPhase.lowercased().contains("starting") { return .starting }
+        if recognitionPhase == "partial" || recognitionPhase == "final" { return .transcribing }
+        return .listening
+    }
 
     // MARK: - Translation Session (set by .translationTask)
+    var translationConfigurationRevision = 0
     var translationSession: TranslationSession?
     var translationConfig: TranslationSession.Configuration?
 
@@ -164,13 +255,38 @@ final class AppState {
     }
 
     // MARK: - Max History
-    private let maxEntries = 200
     private let maxDebugEntries = 24
 
     init() {
-        sourceLanguage = .init(identifier: Self.defaultSourceLanguageIdentifier)
-        targetLanguage = .init(identifier: Self.defaultTargetLanguageIdentifier())
+        let defaults = UserDefaults.standard
+        sourceLanguage = .init(identifier: defaults.string(forKey: Self.sourceLanguageDefaultsKey)
+                               ?? Self.defaultSourceLanguageIdentifier)
+        targetLanguage = .init(identifier: defaults.string(forKey: Self.targetLanguageDefaultsKey)
+                               ?? Self.defaultTargetLanguageIdentifier())
         appDisplayLanguage = Self.defaultAppDisplayLanguage()
+        recognitionEngine = Self.defaultRecognitionEngine()
+        overlayOpacity = defaults.object(forKey: Self.overlayOpacityDefaultsKey) == nil
+            ? 0.85
+            : defaults.double(forKey: Self.overlayOpacityDefaultsKey)
+        fontSize = defaults.object(forKey: Self.fontSizeDefaultsKey) == nil
+            ? 24
+            : CGFloat(defaults.double(forKey: Self.fontSizeDefaultsKey))
+        if let rawAudioSource = defaults.string(forKey: Self.audioSourceDefaultsKey),
+           let savedAudioSource = AudioSource(rawValue: rawAudioSource) {
+            audioSource = savedAudioSource
+        }
+        if let rawAppearance = defaults.string(forKey: Self.appearanceDefaultsKey),
+           let savedAppearance = AppearancePreference(rawValue: rawAppearance) {
+            appearancePreference = savedAppearance
+        }
+        if let rawOverlayLayout = defaults.string(forKey: Self.overlayLayoutDefaultsKey),
+           let savedOverlayLayout = OverlayLayoutMode(rawValue: rawOverlayLayout) {
+            overlayLayoutMode = savedOverlayLayout
+        }
+        if let rawTranslationMode = defaults.string(forKey: Self.translationModeDefaultsKey),
+           let savedTranslationMode = TranslationMode(rawValue: rawTranslationMode) {
+            translationMode = savedTranslationMode
+        }
         updateTranslationConfig()
     }
 
@@ -178,14 +294,53 @@ final class AppState {
     func appendEntry(original: String, translated: String?) -> Int {
         let entry = TranscriptEntry(originalText: original, translatedText: translated)
         transcriptEntries.append(entry)
-        if transcriptEntries.count > maxEntries {
-            transcriptEntries.removeFirst(transcriptEntries.count - maxEntries)
-        }
         return transcriptEntries.count - 1
     }
 
     func updateTranslationConfig() {
+        if translationConfig?.source == sourceLanguage,
+           translationConfig?.target == targetLanguage { return }
+        translationSession = nil
+        translationConfigurationRevision &+= 1
         translationConfig = .init(source: sourceLanguage, target: targetLanguage)
+    }
+
+    func beginEntryTranslation(entryID: UUID) -> (requestID: UUID, sourceText: String)? {
+        guard let index = transcriptEntries.firstIndex(where: { $0.id == entryID }) else { return nil }
+        let requestID = UUID()
+        transcriptEntries[index].translationRequestID = requestID
+        transcriptEntries[index].translationStage = .pending
+        return (requestID, transcriptEntries[index].originalText)
+    }
+
+    @discardableResult
+    func applyEntryTranslation(_ text: String,
+                               entryID: UUID,
+                               requestID: UUID,
+                               expectedSource: String,
+                               stage: TranslationStage) -> Bool {
+        guard let index = transcriptEntries.firstIndex(where: { $0.id == entryID }),
+              transcriptEntries[index].translationRequestID == requestID,
+              transcriptEntries[index].originalText == expectedSource else {
+            return false
+        }
+        // Once the reader has moved on, do not silently rewrite an already
+        // readable translation with a late stylistic AI refinement.
+        if stage == .contextualAI, transcriptEntries[index].translatedText != nil,
+           (index != transcriptEntries.count - 1 || !currentOriginalText.isEmpty || !captionScroll.followsLatest) {
+            return false
+        }
+        transcriptEntries[index].translatedText = text
+        transcriptEntries[index].translationStage = stage
+        return true
+    }
+
+    func translationContext(before entryID: UUID, limit: Int = 3) -> [SubtitleRefinementContext] {
+        guard let index = transcriptEntries.firstIndex(where: { $0.id == entryID }) else { return [] }
+        return transcriptEntries[..<index].suffix(limit).map {
+            SubtitleRefinementContext(source: $0.originalText,
+                                      translation: $0.translatedText ?? "")
+        }
     }
 
     /// Format an elapsed duration as `mm:ss` (or `h:mm:ss` past one hour).
@@ -358,6 +513,14 @@ final class AppState {
             return savedValue
         }
         return .system
+    }
+
+    private static func defaultRecognitionEngine() -> RecognitionEngine {
+        if let rawValue = UserDefaults.standard.string(forKey: recognitionEngineDefaultsKey),
+           let savedValue = RecognitionEngine(rawValue: rawValue) {
+            return savedValue
+        }
+        return .appleSpeech
     }
 
     static func localizedString(_ key: String, localizationIdentifier: String) -> String {

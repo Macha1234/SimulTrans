@@ -8,47 +8,48 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            STTheme.bg.ignoresSafeArea()
+            STWindowBackdrop()
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
                 topBar
 
-                masthead
-                    .padding(.horizontal, 32)
-                    .padding(.top, 30)
-                    .padding(.bottom, 22)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        masthead
 
-                VStack(spacing: 10) {
-                    permissionCard(
-                        number: "01",
-                        titleKey: "Screen recording",
-                        subKey: "Needed to capture system audio from meetings, webinars, and livestreams.",
-                        status: permissions.screenRecording,
-                        onGrant: permissions.requestScreenRecording
-                    )
-                    permissionCard(
-                        number: "02",
-                        titleKey: "Microphone",
-                        subKey: "Optional. Only if you plan to translate a live conversation in the room.",
-                        status: permissions.microphone,
-                        onGrant: permissions.requestMicrophone
-                    )
-                    permissionCard(
-                        number: "03",
-                        titleKey: "Speech recognition",
-                        subKey: "Apple's on-device speech engine powers transcription.",
-                        status: permissions.speechRecognition,
-                        onGrant: permissions.requestSpeechRecognition
-                    )
+                        VStack(spacing: 12) {
+                            permissionCard(
+                                icon: "rectangle.inset.filled.and.person.filled",
+                                titleKey: "Screen recording",
+                                subKey: "Needed to capture system audio from meetings, webinars, and livestreams.",
+                                status: permissions.screenRecording,
+                                onGrant: permissions.requestScreenRecording
+                            )
+                            permissionCard(
+                                icon: "mic.fill",
+                                titleKey: "Microphone",
+                                subKey: "Optional. Only if you plan to translate a live conversation in the room.",
+                                status: permissions.microphone,
+                                onGrant: permissions.requestMicrophone
+                            )
+                            permissionCard(
+                                icon: "waveform",
+                                titleKey: "Speech recognition",
+                                subKey: "Apple's on-device speech engine powers transcription.",
+                                status: permissions.speechRecognition,
+                                onGrant: permissions.requestSpeechRecognition
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 24)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 32)
-
-                Spacer(minLength: 0)
 
                 footerBar
             }
         }
-        .frame(width: 560, height: 520)
+        .frame(minWidth: 600, minHeight: 600)
         .preferredColorScheme(appState.appearancePreference.colorScheme)
         .environment(\.locale, appState.appInterfaceLocale)
         .onAppear { permissions.refresh() }
@@ -56,85 +57,68 @@ struct OnboardingView: View {
 
     private var topBar: some View {
         HStack {
-            Text("Step 02 / 03 · Permissions", bundle: .module)
-                .font(STTheme.monoFont(size: 10))
-                .tracking(2)
-                .foregroundStyle(STTheme.inkTertiary)
-                .textCase(.uppercase)
+            STBrandMark(compact: true)
 
             Spacer()
 
-            Text("— SimulTrans —", bundle: .module)
-                .font(STTheme.monoFont(size: 10))
-                .tracking(2)
-                .foregroundStyle(STTheme.inkTertiary)
-                .textCase(.uppercase)
+            Label {
+                Text("Permissions", bundle: .module)
+            } icon: {
+                Image(systemName: "lock.shield")
+            }
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(STTheme.secondaryLabel)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 30)
+        .padding(.vertical, 20)
         .overlay(alignment: .bottom) {
-            Rectangle().fill(STTheme.rule).frame(height: 1)
+            Rectangle().fill(STTheme.separator).frame(height: 1)
         }
     }
 
     private var masthead: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("We need a little\naccess before we begin.", bundle: .module)
-                .font(STTheme.displayFont(size: 36, weight: .medium))
-            .tracking(-1.2)
-            .lineSpacing(2)
-            .foregroundStyle(STTheme.ink)
-            .multilineTextAlignment(.leading)
-            .fixedSize(horizontal: false, vertical: true)
+                .font(STTheme.displayFont(size: 30, weight: .semibold))
+                .tracking(-0.7)
+                .foregroundStyle(STTheme.primaryLabel)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Text("SimulTrans runs entirely on this device. These permissions stay between you and macOS — nothing is sent anywhere.", bundle: .module)
+            Text("Choose the permissions for your audio source. You can change access at any time in System Settings.", bundle: .module)
                 .font(STTheme.bodyFont(size: 13))
-                .foregroundStyle(STTheme.inkSecondary)
-                .lineSpacing(3)
-                .frame(maxWidth: 440, alignment: .leading)
+                .foregroundStyle(STTheme.secondaryLabel)
+                .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private func permissionCard(number: String,
+    private func permissionCard(icon: String,
                                 titleKey: LocalizedStringKey,
                                 subKey: LocalizedStringKey,
                                 status: PermissionManager.Status,
                                 onGrant: @escaping () -> Void) -> some View {
-        HStack(alignment: .center, spacing: 14) {
-            Text(number)
-                .font(STTheme.monoFont(size: 10))
-                .tracking(1)
-                .foregroundStyle(STTheme.inkTertiary)
-                .frame(width: 24, alignment: .leading)
+        HStack(alignment: .top, spacing: 14) {
+            STIconBadge(systemName: icon, size: 38)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text(titleKey, bundle: .module)
-                    .font(STTheme.displayFont(size: 17, weight: .medium))
-                    .tracking(-0.3)
-                    .foregroundStyle(STTheme.ink)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(STTheme.primaryLabel)
 
                 Text(subKey, bundle: .module)
                     .font(STTheme.bodyFont(size: 12))
-                    .foregroundStyle(STTheme.inkSecondary)
-                    .lineSpacing(2)
+                    .foregroundStyle(STTheme.secondaryLabel)
+                    .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
+
+                statusChip(status: status, onGrant: onGrant)
+                    .padding(.top, 3)
             }
-
-            Spacer(minLength: 12)
-
-            statusChip(status: status, onGrant: onGrant)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(STTheme.panel)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(STTheme.rule, lineWidth: 1)
-                )
-        )
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(STGlassSurface())
     }
 
     @ViewBuilder
@@ -142,70 +126,53 @@ struct OnboardingView: View {
                             onGrant: @escaping () -> Void) -> some View {
         switch status {
         case .granted:
-            HStack(spacing: 6) {
-                Circle().fill(STTheme.green).frame(width: 6, height: 6)
+            Label {
                 Text("Granted", bundle: .module)
-                    .font(STTheme.monoFont(size: 10))
-                    .tracking(1.5)
-                    .foregroundStyle(STTheme.green)
-                    .textCase(.uppercase)
+            } icon: {
+                Image(systemName: "checkmark.circle.fill")
             }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(STTheme.liveStatus)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(STTheme.liveStatus.opacity(0.10)))
         case .denied:
             Button(action: openPrivacySettings) {
-                Text("Open Settings", bundle: .module)
-                    .font(STTheme.monoFont(size: 10))
-                    .tracking(1.5)
-                    .foregroundStyle(STTheme.ink)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 3)
-                            .stroke(STTheme.ruleHard, lineWidth: 1)
-                    )
+                Label {
+                    Text("Open Settings", bundle: .module)
+                } icon: {
+                    Image(systemName: "arrow.up.right")
+                }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(STButtonStyle(.secondary, compact: true))
         case .notDetermined:
             Button(action: onGrant) {
                 Text("Grant", bundle: .module)
-                    .font(STTheme.monoFont(size: 10))
-                    .tracking(1.5)
-                    .foregroundStyle(STTheme.bg)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(RoundedRectangle(cornerRadius: 3).fill(STTheme.ink))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(STButtonStyle(.primary, compact: true))
         }
     }
 
     private var footerBar: some View {
-        HStack {
+        HStack(spacing: 16) {
             Button(action: onSkip) {
                 Text("Skip for now", bundle: .module)
-                    .font(STTheme.monoFont(size: 11))
-                    .tracking(1)
-                    .foregroundStyle(STTheme.inkTertiary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(STButtonStyle(.quiet))
 
             Spacer()
 
             Button(action: onContinue) {
                 Text("Continue →", bundle: .module)
-                    .font(STTheme.monoFont(size: 12))
-                    .tracking(2)
-                    .foregroundStyle(STTheme.onAccent)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 11)
-                    .background(RoundedRectangle(cornerRadius: 4).fill(STTheme.accent))
+                    .frame(minWidth: 110)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(STButtonStyle(.primary))
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 16)
-        .background(STTheme.panel)
+        .padding(.horizontal, 30)
+        .padding(.vertical, 18)
+        .background(.ultraThinMaterial)
         .overlay(alignment: .top) {
-            Rectangle().fill(STTheme.rule).frame(height: 1)
+            Rectangle().fill(STTheme.separator).frame(height: 1)
         }
     }
 

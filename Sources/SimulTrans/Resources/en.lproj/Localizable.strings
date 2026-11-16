@@ -9,6 +9,7 @@
 "Overlay" = "Overlay";
 "Debug" = "Debug";
 "Audio Input" = "Audio Input";
+"Recognition Engine" = "Recognition Engine";
 "Source Language" = "Source Language";
 "Translate To" = "Translate To";
 "Opacity" = "Opacity";
@@ -128,6 +129,10 @@
 "Translation engine" = "Translation engine";
 "Runs locally via Apple Translation." = "Runs locally via Apple Translation.";
 "On-device" = "On-device";
+"Recognition engine" = "Recognition engine";
+"Uses Apple's on-device Speech framework." = "Uses Apple's on-device Speech framework.";
+"Requires whisper.cpp server and a ggml large-v3-turbo model." = "Requires whisper.cpp server and a ggml large-v3-turbo model.";
+"Requires the SimulTrans Qwen sidecar and a local Qwen3-ASR-1.7B model." = "Requires the SimulTrans Qwen sidecar and a local Qwen3-ASR-1.7B model.";
 "Surface raw / effective / displayed text in the control window for tuning." = "Surface raw / effective / displayed text in the control window for tuning.";
 
 /* App menu and panels */
@@ -143,3 +148,87 @@
 
 /* Onboarding headline */
 "We need a little\naccess before we begin." = "We need a little\naccess before we begin.";
+
+/* Product redesign V2 */
+"New live session" = "New live session";
+"Choose the source, recognition engine and language route." = "Choose the source, recognition engine and language route.";
+"Audio source" = "Audio source";
+"Recognition" = "Recognition";
+"Language route" = "Language route";
+"Swap languages" = "Swap languages";
+"Apple · This Mac" = "Apple · This Mac";
+"Whisper · This Mac" = "Whisper · This Mac";
+"Qwen · Mini PC" = "Qwen · Mini PC";
+"Live session" = "Live session";
+"Waking the recognition engine…" = "Waking the recognition engine…";
+"Listening for speech…" = "Listening for speech…";
+"The first recognized phrase will appear here." = "The first recognized phrase will appear here.";
+"Translating…" = "Translating…";
+"Live captions" = "Live captions";
+"A focused overlay designed for video and meetings." = "A focused overlay designed for video and meetings.";
+"Show" = "Show";
+"Hide" = "Hide";
+"Translation only" = "Translation only";
+"Bilingual" = "Bilingual";
+"Transcript" = "Transcript";
+"Spoken words appear here" = "Spoken words appear here";
+"Translation appears here" = "Translation appears here";
+"Latest result" = "Latest result";
+"entries" = "entries";
+"Copy latest translation" = "Copy latest translation";
+"Needs attention" = "Needs attention";
+"Try again" = "Try again";
+"Use Apple instead" = "Use Apple instead";
+"Dismiss" = "Dismiss";
+"Clear this session?" = "Clear this session?";
+"Clear session" = "Clear session";
+"Cancel" = "Cancel";
+"This removes the current transcript. Export it first if you want to keep a copy." = "This removes the current transcript. Export it first if you want to keep a copy.";
+"Hide captions" = "Hide captions";
+"Show captions" = "Show captions";
+"Start translation" = "Start translation";
+"Stop translation" = "Stop translation";
+"Cancel startup" = "Cancel startup";
+"Starting" = "Starting";
+"Transcribing" = "Transcribing";
+"Live" = "Live";
+"Attention" = "Attention";
+"Ready" = "Ready";
+"Ready when you are" = "Ready when you are";
+"Audio & Recognition" = "Audio & Recognition";
+"App behavior and appearance" = "App behavior and appearance";
+"Choose where speech recognition runs" = "Choose where speech recognition runs";
+"Source and target languages" = "Source and target languages";
+"Caption layout and readability" = "Caption layout and readability";
+"Diagnostics and data path" = "Diagnostics and data path";
+"Capture the whole Mac or use a microphone." = "Capture the whole Mac or use a microphone.";
+"Processing location" = "Processing location";
+"Caption layout" = "Caption layout";
+"Choose translation only, bilingual captions or a full transcript." = "Choose translation only, bilingual captions or a full transcript.";
+"Show recognition diagnostics" = "Show recognition diagnostics";
+"Inspect raw and displayed text when recognition behaves unexpectedly." = "Inspect raw and displayed text when recognition behaves unexpectedly.";
+"This Mac" = "This Mac";
+"This Mac · Local model" = "This Mac · Local model";
+"Mini PC · Private tunnel" = "Mini PC · Private tunnel";
+"Speech recognition stays on this Mac." = "Speech recognition stays on this Mac.";
+"Audio is processed by the local Whisper service on this Mac." = "Audio is processed by the local Whisper service on this Mac.";
+"Audio is sent through your private encrypted tunnel to the Mini PC, not to a cloud provider." = "Audio is sent through your private encrypted tunnel to the Mini PC, not to a cloud provider.";
+"Runs Qwen3-ASR-1.7B on the Mini PC GPU through the secure local SSH tunnel." = "Runs Qwen3-ASR-1.7B on the Mini PC GPU through the secure local SSH tunnel.";
+"Current route" = "Current route";
+"Latest caption" = "Latest caption";
+"Start a session to see live captions here." = "Start a session to see live captions here.";
+"Open Control Center" = "Open Control Center";
+"Context AI" = "Context AI";
+"Apple only" = "Apple only";
+"Translation quality" = "Translation quality";
+"Context AI shows an Apple draft first, then improves final subtitles on your Mini PC." = "Context AI shows an Apple draft first, then improves final subtitles on your Mini PC.";
+"Last ASR processing" = "Last ASR processing";
+"Last ASR queue" = "Last ASR queue";
+"Last translation" = "Last translation";
+"Translation" = "Translation";
+
+"Back to latest" = "Back to latest";
+
+/* Shared permissions page */
+"Permissions" = "Permissions";
+"Choose the permissions for your audio source. You can change access at any time in System Settings." = "Choose the permissions for your audio source. You can change access at any time in System Settings.";

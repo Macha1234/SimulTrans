@@ -6,21 +6,29 @@ struct SettingsView: View {
 
     enum Tab: String, CaseIterable, Identifiable {
         case general
+        case recognition
         case languages
         case overlay
-        case hotkeys
-        case export
         case advanced
 
         var id: String { rawValue }
 
+        var systemImage: String {
+            switch self {
+            case .general: return "slider.horizontal.3"
+            case .recognition: return "waveform"
+            case .languages: return "character.bubble"
+            case .overlay: return "rectangle.on.rectangle"
+            case .advanced: return "gearshape.2"
+            }
+        }
+
         var localizationKey: String {
             switch self {
             case .general: return "General"
-            case .languages: return "Languages"
+            case .recognition: return "Audio & Recognition"
+            case .languages: return "Translation"
             case .overlay: return "Overlay"
-            case .hotkeys: return "Hotkeys"
-            case .export: return "Export"
             case .advanced: return "Advanced"
             }
         }
@@ -31,7 +39,7 @@ struct SettingsView: View {
 
         HStack(spacing: 0) {
             sidebar
-                .frame(width: 168)
+                .frame(width: 206)
 
             Rectangle()
                 .fill(STTheme.rule)
@@ -39,11 +47,9 @@ struct SettingsView: View {
 
             content(appState: appState)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(STTheme.bg)
         }
-        .frame(width: STTheme.settingsWindowSize.width,
-               height: STTheme.settingsWindowSize.height)
-        .background(STTheme.bg)
+        .frame(minWidth: 760, minHeight: 580)
+        .background(STWindowBackdrop())
         .preferredColorScheme(appState.appearancePreference.colorScheme)
         .environment(\.locale, appState.appInterfaceLocale)
         .onChange(of: appState.sourceLanguage) { appState.updateTranslationConfig() }
@@ -57,45 +63,65 @@ struct SettingsView: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Settings", bundle: .module)
-                .font(STTheme.displayFont(size: 22, weight: .medium))
-                .tracking(-0.6)
-                .foregroundStyle(STTheme.ink)
-                .padding(.horizontal, 16)
-                .padding(.top, 22)
-                .padding(.bottom, 18)
-
-            ForEach(Tab.allCases) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    Text(appState.localizedAppString(tab.localizationKey))
-                        .font(STTheme.bodyFont(size: 13, weight: tab == selectedTab ? .medium : .regular))
-                        .foregroundStyle(tab == selectedTab ? STTheme.onAccent : STTheme.inkSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(tab == selectedTab ? STTheme.ink : Color.clear)
-                        )
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 1)
+            VStack(alignment: .leading, spacing: 14) {
+                STBrandMark(compact: true)
+                Text("Settings", bundle: .module)
+                    .font(STTheme.bodyFont(size: 12, weight: .semibold))
+                    .foregroundStyle(STTheme.secondaryLabel)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 28)
+            .padding(.bottom, 30)
+
+            VStack(spacing: 6) {
+                ForEach(Tab.allCases) { tab in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            selectedTab = tab
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: tab.systemImage)
+                                .font(.system(size: 15, weight: .medium))
+                                .frame(width: 20)
+                                .foregroundStyle(tab == selectedTab ? STTheme.accent : STTheme.secondaryLabel)
+                            Text(appState.localizedAppString(tab.localizationKey))
+                                .font(STTheme.bodyFont(size: 13, weight: tab == selectedTab ? .semibold : .medium))
+                                .foregroundStyle(tab == selectedTab ? STTheme.primaryLabel : STTheme.secondaryLabel)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 11)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background {
+                            if tab == selectedTab {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(STTheme.accentSoft)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(STTheme.accent.opacity(0.14), lineWidth: 1)
+                                    }
+                            }
+                        }
+                        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(tab == selectedTab ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, 12)
 
             Spacer()
 
             Text("v\(versionString)")
-                .font(STTheme.monoFont(size: 10))
-                .tracking(1)
+                .font(STTheme.bodyFont(size: 11, weight: .medium))
                 .foregroundStyle(STTheme.inkTertiary)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 14)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 22)
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(STTheme.panel)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Content
@@ -107,58 +133,61 @@ struct SettingsView: View {
                 contentHeader(eyebrow: appState.localizedAppString(selectedTab.localizationKey),
                               title: titleForTab(selectedTab))
 
-                switch selectedTab {
-                case .general:
-                    generalRows(appState: appState)
-                case .languages:
-                    languagesRows(appState: appState)
-                case .overlay:
-                    overlayRows(appState: appState)
-                case .hotkeys:
-                    hotkeysRows()
-                case .export:
-                    exportRows()
-                case .advanced:
-                    advancedRows(appState: appState)
+                VStack(spacing: 0) {
+                    switch selectedTab {
+                    case .general:
+                        generalRows(appState: appState)
+                    case .recognition:
+                        recognitionRows(appState: appState)
+                    case .languages:
+                        languagesRows(appState: appState)
+                    case .overlay:
+                        overlayRows(appState: appState)
+                    case .advanced:
+                        advancedRows(appState: appState)
+                    }
                 }
+                .padding(.horizontal, 22)
+                .padding(.vertical, 6)
+                .background(STGlassSurface(radius: 22))
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 24)
-            .padding(.bottom, 30)
+            .padding(.horizontal, 30)
+            .padding(.top, 30)
+            .padding(.bottom, 32)
+            .frame(maxWidth: 900, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 
     private func titleForTab(_ tab: Tab) -> String {
         switch tab {
         case .general:
-            return appState.localizedAppString("How SimulTrans behaves.")
+            return appState.localizedAppString("App behavior and appearance")
+        case .recognition:
+            return appState.localizedAppString("Choose where speech recognition runs")
         case .languages:
-            return appState.localizedAppString("Source and target.")
+            return appState.localizedAppString("Source and target languages")
         case .overlay:
-            return appState.localizedAppString("How the floating window looks.")
-        case .hotkeys:
-            return appState.localizedAppString("Keyboard shortcuts.")
-        case .export:
-            return appState.localizedAppString("Saving transcripts.")
+            return appState.localizedAppString("Caption layout and readability")
         case .advanced:
-            return appState.localizedAppString("Diagnostics and engine.")
+            return appState.localizedAppString("Diagnostics and data path")
         }
     }
 
     private func contentHeader(eyebrow: String, title: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(eyebrow)
-                .font(STTheme.monoFont(size: 10))
-                .tracking(2)
-                .foregroundStyle(STTheme.accent)
-                .textCase(.uppercase)
-
-            Text(title)
-                .font(STTheme.displayFont(size: 28, weight: .medium))
-                .tracking(-0.8)
-                .foregroundStyle(STTheme.ink)
+        HStack(alignment: .center, spacing: 14) {
+            STIconBadge(systemName: selectedTab.systemImage, size: 46)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(eyebrow)
+                    .font(STTheme.displayFont(size: 27, weight: .semibold))
+                    .foregroundStyle(STTheme.primaryLabel)
+                Text(title)
+                    .font(STTheme.bodyFont(size: 13))
+                    .foregroundStyle(STTheme.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding(.bottom, 4)
+        .padding(.bottom, 8)
     }
 
     // MARK: - General
@@ -170,23 +199,44 @@ struct SettingsView: View {
         SetRow(label: appState.localizedAppString("App Language")) {
             AppLanguagePicker(selection: $appState.appDisplayLanguage)
         }
-        SetRow(label: appState.localizedAppString("Launch at login")) {
-            STSwitch(isOn: $appState.launchAtLogin)
-        }
         SetRow(label: appState.localizedAppString("Show menu bar icon")) {
             STSwitch(isOn: $appState.showMenuBarIcon)
-        }
-        SetRow(label: appState.localizedAppString("Hide dock icon"),
-               hint: appState.localizedAppString("Run as a pure menu bar app (takes effect on next launch).")) {
-            STSwitch(isOn: $appState.hideDockIcon)
-        }
-        SetRow(label: appState.localizedAppString("Dim overlay when silent"),
-               hint: appState.localizedAppString("Fades the overlay to ~30% opacity after 10s of silence.")) {
-            STSwitch(isOn: $appState.dimOverlayWhenSilent)
         }
         SetRow(label: appState.localizedAppString("Theme")) {
             STSegmented(options: AppearancePreference.allCases.map { ($0, $0.label(in: appState.appInterfaceLocale)) },
                         selected: $appState.appearancePreference)
+        }
+    }
+
+    // MARK: - Audio & Recognition
+
+    @ViewBuilder
+    private func recognitionRows(appState: AppState) -> some View {
+        @Bindable var appState = appState
+
+        SetRow(label: appState.localizedAppString("Audio source"),
+               hint: appState.localizedAppString("Capture the whole Mac or use a microphone.")) {
+            STSegmented(options: AppState.AudioSource.allCases.map {
+                ($0, $0.localizedName(in: appState.appInterfaceLocale))
+            }, selected: $appState.audioSource)
+            .disabled(appState.isRunning)
+        }
+
+        SetRow(label: appState.localizedAppString("Recognition engine"),
+               hint: appState.localizedAppString(appState.recognitionEngine.setupHint)) {
+            STSegmented(options: RecognitionEngine.allCases.map { ($0, $0.shortLabel) },
+                        selected: $appState.recognitionEngine)
+                .disabled(appState.isRunning)
+        }
+
+        SetRow(label: appState.localizedAppString("Processing location"),
+               hint: recognitionPrivacyDescription(appState.recognitionEngine)) {
+            Text(recognitionLocation(appState.recognitionEngine))
+                .font(STTheme.bodyFont(size: 11, weight: .medium))
+                .foregroundStyle(STTheme.liveStatus)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(STTheme.liveStatus.opacity(0.10)))
         }
     }
 
@@ -196,6 +246,12 @@ struct SettingsView: View {
     private func languagesRows(appState: AppState) -> some View {
         @Bindable var appState = appState
 
+        SetRow(label: appState.localizedAppString("Translation quality"),
+               hint: appState.localizedAppString("Context AI shows an Apple draft first, then improves final subtitles on your Mini PC.")) {
+            STSegmented(options: AppState.TranslationMode.allCases.map {
+                ($0, appState.localizedAppString($0.localizationKey))
+            }, selected: $appState.translationMode)
+        }
         SetRow(label: appState.localizedAppString("Source language"),
                hint: appState.localizedAppString("What you expect to hear.")) {
             LanguagePicker(selection: $appState.sourceLanguage)
@@ -214,53 +270,21 @@ struct SettingsView: View {
 
         SetRow(label: appState.localizedAppString("Opacity"),
                hint: appState.localizedAppString("Background opacity of the floating overlay.")) {
-            SliderControl(value: $appState.overlayOpacity, range: 0.0...1.0, step: 0.05)
+            SliderControl(value: $appState.overlayOpacity, range: 0.35...1.0, step: 0.05)
+        }
+        SetRow(label: appState.localizedAppString("Caption layout"),
+               hint: appState.localizedAppString("Choose translation only, bilingual captions or a full transcript.")) {
+            STSegmented(options: AppState.OverlayLayoutMode.allCases.map {
+                ($0, appState.localizedAppString($0.localizationKey))
+            }, selected: $appState.overlayLayoutMode)
         }
         SetRow(label: String(format: appState.localizedAppString("Text size · %lld pt"),
                              locale: appState.appInterfaceLocale,
                              Int(appState.fontSize))) {
             SliderControl(value: Binding(get: { Double(appState.fontSize) },
                                          set: { appState.fontSize = CGFloat($0) }),
-                          range: 12...26,
+                          range: 18...48,
                           step: 1)
-        }
-    }
-
-    // MARK: - Hotkeys / Export placeholders
-
-    @ViewBuilder
-    private func hotkeysRows() -> some View {
-        SetRow(label: appState.localizedAppString("Toggle overlay"),
-               hint: appState.localizedAppString("Coming soon — global shortcut to show / hide the floating window.")) {
-            HotkeyChip(text: "⌘⇧T")
-        }
-        SetRow(label: appState.localizedAppString("Start / stop translation"),
-               hint: appState.localizedAppString("Coming soon.")) {
-            HotkeyChip(text: "⌘⇧Space")
-        }
-    }
-
-    @ViewBuilder
-    private func exportRows() -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SetRow(label: appState.localizedAppString("Default format"),
-                   hint: appState.localizedAppString("Plain text with timestamp + source + translation.")) {
-                Text("TXT")
-                    .font(STTheme.monoFont(size: 11))
-                    .tracking(1.5)
-                    .foregroundStyle(STTheme.ink)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 3)
-                            .stroke(STTheme.ruleHard, lineWidth: 1)
-                    )
-            }
-            SetRow(label: appState.localizedAppString("Open exported files"),
-                   hint: appState.localizedAppString("Reveals each export in Finder after saving.")) {
-                STSwitch(isOn: .constant(true))
-                    .opacity(0.6)
-            }
         }
     }
 
@@ -278,14 +302,75 @@ struct SettingsView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(STTheme.ruleHard, lineWidth: 1)
+                    Capsule()
+                        .fill(STTheme.accentSoft)
+                        .overlay(Capsule().stroke(STTheme.accent.opacity(0.14), lineWidth: 1))
                 )
         }
 
-        SetRow(label: appState.localizedAppString("Show debug recognition panel"),
-               hint: appState.localizedAppString("Surface raw / effective / displayed text in the control window for tuning.")) {
+        SetRow(label: appState.localizedAppString("Show recognition diagnostics"),
+               hint: appState.localizedAppString("Inspect raw and displayed text when recognition behaves unexpectedly.")) {
             STSwitch(isOn: $appState.debugPanelExpanded)
+        }
+
+        if appState.debugPanelExpanded {
+            VStack(alignment: .leading, spacing: 10) {
+                if let asr = appState.lastASRProcessingMilliseconds {
+                    diagnosticBlock(title: appState.localizedAppString("Last ASR processing"),
+                                    text: "\(asr) ms")
+                }
+                if let queue = appState.lastASRQueueMilliseconds {
+                    diagnosticBlock(title: appState.localizedAppString("Last ASR queue"),
+                                    text: "\(queue) ms")
+                }
+                if let translation = appState.lastTranslationMilliseconds {
+                    diagnosticBlock(title: appState.localizedAppString("Last translation"),
+                                    text: "\(appState.lastTranslationEngine ?? "—") · \(translation) ms")
+                }
+                diagnosticBlock(title: appState.localizedAppString("Raw recognizer text"),
+                                text: appState.rawRecognitionText)
+                diagnosticBlock(title: appState.localizedAppString("Effective text"),
+                                text: appState.effectiveRecognitionText)
+                diagnosticBlock(title: appState.localizedAppString("Displayed live text"),
+                                text: appState.currentOriginalText)
+                diagnosticBlock(title: appState.localizedAppString("Current translation"),
+                                text: appState.currentTranslatedText)
+            }
+            .padding(16)
+            .background(STGlassSurface(radius: 14))
+            .padding(.vertical, 14)
+        }
+    }
+
+    private func diagnosticBlock(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(STTheme.bodyFont(size: 11, weight: .medium))
+                .foregroundStyle(STTheme.inkTertiary)
+            Text(text.isEmpty ? appState.localizedAppString("No data yet") : text)
+                .font(STTheme.monoFont(size: 11, weight: .regular))
+                .foregroundStyle(text.isEmpty ? STTheme.inkTertiary : STTheme.inkSecondary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func recognitionLocation(_ engine: RecognitionEngine) -> String {
+        switch engine {
+        case .appleSpeech: return appState.localizedAppString("This Mac")
+        case .whisperLargeV3Turbo: return appState.localizedAppString("This Mac · Local model")
+        case .qwen3ASR1_7B: return appState.localizedAppString("Mini PC · Private tunnel")
+        }
+    }
+
+    private func recognitionPrivacyDescription(_ engine: RecognitionEngine) -> String {
+        switch engine {
+        case .appleSpeech:
+            return appState.localizedAppString("Speech recognition stays on this Mac.")
+        case .whisperLargeV3Turbo:
+            return appState.localizedAppString("Audio is processed by the local Whisper service on this Mac.")
+        case .qwen3ASR1_7B:
+            return appState.localizedAppString("Audio is sent through your private encrypted tunnel to the Mini PC, not to a cloud provider.")
         }
     }
 
@@ -301,30 +386,39 @@ private struct SetRow<Control: View>: View {
     var hint: String? = nil
     @ViewBuilder var control: () -> Control
 
-    var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(STTheme.bodyFont(size: 14, weight: .medium))
-                    .foregroundStyle(STTheme.ink)
-
-                if let hint {
-                    Text(hint)
-                        .font(STTheme.bodyFont(size: 12))
-                        .foregroundStyle(STTheme.inkTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private var description: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(STTheme.bodyFont(size: 13, weight: .semibold))
+                .foregroundStyle(STTheme.ink)
+            if let hint {
+                Text(hint)
+                    .font(STTheme.bodyFont(size: 12))
+                    .foregroundStyle(STTheme.inkTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer(minLength: 16)
-
-            control()
         }
-        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 22) {
+                description.frame(minWidth: 160)
+                control().fixedSize(horizontal: true, vertical: false)
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                description
+                control()
+            }
+        }
+        .padding(.vertical, 19)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(label)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(STTheme.rule)
+                .fill(STTheme.rule.opacity(0.7))
                 .frame(height: 1)
         }
     }
@@ -334,23 +428,11 @@ private struct STSwitch: View {
     @Binding var isOn: Bool
 
     var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            ZStack(alignment: isOn ? .trailing : .leading) {
-                Capsule()
-                    .fill(isOn ? STTheme.accent : STTheme.rule)
-                    .frame(width: 36, height: 20)
-
-                Circle()
-                    .fill(STTheme.onAccent)
-                    .frame(width: 16, height: 16)
-                    .padding(2)
-                    .shadow(color: STTheme.shadow, radius: 1, x: 0, y: 0.5)
-            }
-            .animation(.easeOut(duration: 0.18), value: isOn)
-        }
-        .buttonStyle(.plain)
+        Toggle("", isOn: $isOn)
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .tint(STTheme.accent)
+            .controlSize(.regular)
     }
 }
 
@@ -359,33 +441,41 @@ private struct STSegmented<T: Hashable>: View {
     @Binding var selected: T
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(options.enumerated()), id: \.offset) { index, item in
+        HStack(spacing: 3) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, item in
                 let (value, label) = item
                 Button {
-                    selected = value
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        selected = value
+                    }
                 } label: {
                     Text(label)
-                        .font(STTheme.monoFont(size: 11))
-                        .tracking(1)
-                        .foregroundStyle(value == selected ? STTheme.onAccent : STTheme.inkSecondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(value == selected ? STTheme.ink : Color.clear)
+                        .font(STTheme.bodyFont(size: 11, weight: value == selected ? .semibold : .medium))
+                        .foregroundStyle(value == selected ? STTheme.accent : STTheme.inkSecondary)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 8)
+                        .background {
+                            if value == selected {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(STTheme.surfaceHighlight)
+                                    .shadow(color: STTheme.shadow.opacity(0.4), radius: 3, x: 0, y: 1)
+                            }
+                        }
+                        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.plain)
-
-                if index != options.count - 1 {
-                    Rectangle()
-                        .fill(STTheme.ruleHard)
-                        .frame(width: 1, height: 18)
-                }
+                .accessibilityAddTraits(value == selected ? .isSelected : [])
             }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(STTheme.ruleHard, lineWidth: 1)
-        )
+        .padding(3)
+        .background {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(STTheme.rule.opacity(0.45))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .stroke(STTheme.glassBorder, lineWidth: 1)
+                }
+        }
     }
 }
 
@@ -404,7 +494,7 @@ private struct LanguagePicker: View {
                     .foregroundStyle(STTheme.ink)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
-                    .frame(minWidth: 180, alignment: .leading)
+                    .frame(minWidth: 148, alignment: .leading)
 
                 Rectangle()
                     .fill(STTheme.ruleHard)
@@ -417,11 +507,11 @@ private struct LanguagePicker: View {
                     .frame(width: 30, height: 32)
             }
             .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(STTheme.panel)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(STTheme.surfaceHighlight)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(STTheme.ruleHard, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(STTheme.glassBorder, lineWidth: 1)
                     )
             )
         }
@@ -462,7 +552,7 @@ private struct LanguagePicker: View {
             }
             .frame(width: 240, height: 320)
             .padding(8)
-            .background(STTheme.panel)
+            .background(.regularMaterial)
         }
     }
 
@@ -486,7 +576,7 @@ private struct AppLanguagePicker: View {
                     .foregroundStyle(STTheme.ink)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
-                    .frame(minWidth: 180, alignment: .leading)
+                    .frame(minWidth: 148, alignment: .leading)
 
                 Rectangle()
                     .fill(STTheme.ruleHard)
@@ -499,11 +589,11 @@ private struct AppLanguagePicker: View {
                     .frame(width: 30, height: 32)
             }
             .background(
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(STTheme.panel)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(STTheme.surfaceHighlight)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(STTheme.ruleHard, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(STTheme.glassBorder, lineWidth: 1)
                     )
             )
         }
@@ -544,7 +634,7 @@ private struct AppLanguagePicker: View {
             }
             .frame(width: 240, height: 176)
             .padding(8)
-            .background(STTheme.panel)
+            .background(.regularMaterial)
         }
     }
 }
@@ -555,41 +645,10 @@ private struct SliderControl: View {
     let step: Double
 
     var body: some View {
-        GeometryReader { geometry in
-            let clamped = min(max(value, range.lowerBound), range.upperBound)
-            let progress = (clamped - range.lowerBound) / (range.upperBound - range.lowerBound)
-            let thumbOffset = progress * max(geometry.size.width - 14, 0)
-
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(STTheme.rule)
-                    .frame(height: 3)
-
-                Capsule()
-                    .fill(STTheme.accent)
-                    .frame(width: max(14, thumbOffset + 14), height: 3)
-
-                Circle()
-                    .fill(STTheme.panel)
-                    .frame(width: 14, height: 14)
-                    .overlay(Circle().stroke(STTheme.ruleHard, lineWidth: 1))
-                    .offset(x: thumbOffset)
-                    .shadow(color: STTheme.shadow, radius: 1.5, x: 0, y: 1)
-            }
-            .frame(height: geometry.size.height)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { gesture in
-                        let width = max(geometry.size.width, 1)
-                        let normalized = min(max(gesture.location.x / width, 0), 1)
-                        let raw = range.lowerBound + normalized * (range.upperBound - range.lowerBound)
-                        let stepped = (raw / step).rounded() * step
-                        value = min(max(stepped, range.lowerBound), range.upperBound)
-                    }
-            )
-        }
-        .frame(width: 160, height: 18)
+        STSmoothSlider(value: $value, range: range, step: step)
+            .tint(STTheme.accent)
+            .controlSize(.regular)
+            .frame(width: 170)
     }
 }
 
@@ -604,8 +663,8 @@ private struct HotkeyChip: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(
-                RoundedRectangle(cornerRadius: 3)
-                    .stroke(STTheme.ruleHard, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(STTheme.glassBorder, lineWidth: 1)
             )
     }
 }

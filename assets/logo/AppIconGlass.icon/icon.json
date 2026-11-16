@@ -1,0 +1,36 @@
+{
+  "fill": {
+    "solid": "srgb:0.05098,0.22745,0.85882,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "artwork.png",
+          "name": "SimulTrans",
+          "position": {
+            "scale": 1.17,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          },
+          "glass": false
+        }
+      ],
+      "shadow": {
+        "kind": "none",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}

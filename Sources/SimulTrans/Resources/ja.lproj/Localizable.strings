@@ -9,6 +9,7 @@
 "Overlay" = "オーバーレイ";
 "Debug" = "デバッグ";
 "Audio Input" = "音声入力";
+"Recognition Engine" = "認識エンジン";
 "Source Language" = "原文の言語";
 "Translate To" = "翻訳先";
 "Opacity" = "不透明度";
@@ -128,6 +129,10 @@
 "Translation engine" = "翻訳エンジン";
 "Runs locally via Apple Translation." = "Apple Translation により端末上で動作します。";
 "On-device" = "オンデバイス";
+"Recognition engine" = "認識エンジン";
+"Uses Apple's on-device Speech framework." = "Apple のオンデバイス Speech フレームワークを使用します。";
+"Requires whisper.cpp server and a ggml large-v3-turbo model." = "ローカルの whisper.cpp server と ggml large-v3-turbo モデルが必要です。";
+"Requires the SimulTrans Qwen sidecar and a local Qwen3-ASR-1.7B model." = "ローカルの Qwen sidecar と Qwen3-ASR-1.7B モデルが必要です。";
 "Surface raw / effective / displayed text in the control window for tuning." = "調整用に、raw / 処理後 / 表示中テキストをコントロールウインドウに表示します。";
 
 /* App menu and panels */
@@ -143,3 +148,87 @@
 
 /* Onboarding headline */
 "We need a little\naccess before we begin." = "始める前に、\n少しだけ権限が必要です。";
+
+/* Product redesign V2 */
+"New live session" = "新しい同時通訳セッション";
+"Choose the source, recognition engine and language route." = "音声入力、認識エンジン、翻訳方向を選びます。";
+"Audio source" = "音声入力";
+"Recognition" = "音声認識";
+"Language route" = "翻訳方向";
+"Swap languages" = "言語を入れ替える";
+"Apple · This Mac" = "Apple · この Mac";
+"Whisper · This Mac" = "Whisper · この Mac";
+"Qwen · Mini PC" = "Qwen · Mini PC";
+"Live session" = "ライブセッション";
+"Waking the recognition engine…" = "認識エンジンを起動しています…";
+"Listening for speech…" = "音声を待っています…";
+"The first recognized phrase will appear here." = "最初に認識したフレーズがここに表示されます。";
+"Translating…" = "翻訳中…";
+"Live captions" = "ライブ字幕";
+"A focused overlay designed for video and meetings." = "動画と会議向けの見やすい字幕オーバーレイです。";
+"Show" = "表示";
+"Hide" = "隠す";
+"Translation only" = "翻訳のみ";
+"Bilingual" = "バイリンガル";
+"Transcript" = "全文記録";
+"Spoken words appear here" = "認識した原文がここに表示されます";
+"Translation appears here" = "翻訳がここに表示されます";
+"Latest result" = "最新の結果";
+"entries" = "件";
+"Copy latest translation" = "最新の翻訳をコピー";
+"Needs attention" = "確認が必要です";
+"Try again" = "再試行";
+"Use Apple instead" = "Apple に切り替える";
+"Dismiss" = "閉じる";
+"Clear this session?" = "このセッションを消去しますか？";
+"Clear session" = "セッションを消去";
+"Cancel" = "キャンセル";
+"This removes the current transcript. Export it first if you want to keep a copy." = "現在の文字起こしが削除されます。残す場合は先に書き出してください。";
+"Hide captions" = "字幕を隠す";
+"Show captions" = "字幕を表示";
+"Start translation" = "同時通訳を開始";
+"Stop translation" = "同時通訳を停止";
+"Cancel startup" = "起動をキャンセル";
+"Starting" = "起動中";
+"Transcribing" = "認識中";
+"Live" = "ライブ";
+"Attention" = "要確認";
+"Ready" = "準備完了";
+"Ready when you are" = "準備できました";
+"Audio & Recognition" = "音声と認識";
+"App behavior and appearance" = "アプリの動作と外観";
+"Choose where speech recognition runs" = "音声認識の実行場所を選択";
+"Source and target languages" = "原文と翻訳先の言語";
+"Caption layout and readability" = "字幕レイアウトと読みやすさ";
+"Diagnostics and data path" = "診断情報とデータ経路";
+"Capture the whole Mac or use a microphone." = "Mac のシステム音声またはマイクを使用します。";
+"Processing location" = "処理場所";
+"Caption layout" = "字幕レイアウト";
+"Choose translation only, bilingual captions or a full transcript." = "翻訳のみ、バイリンガル、全文記録から選びます。";
+"Show recognition diagnostics" = "認識診断を表示";
+"Inspect raw and displayed text when recognition behaves unexpectedly." = "認識に問題があるとき、raw と表示テキストを確認します。";
+"This Mac" = "この Mac";
+"This Mac · Local model" = "この Mac · ローカルモデル";
+"Mini PC · Private tunnel" = "Mini PC · プライベートトンネル";
+"Speech recognition stays on this Mac." = "音声認識はこの Mac 内で処理されます。";
+"Audio is processed by the local Whisper service on this Mac." = "音声はこの Mac 上のローカル Whisper サービスで処理されます。";
+"Audio is sent through your private encrypted tunnel to the Mini PC, not to a cloud provider." = "音声は暗号化された専用トンネルで Mini PC に送られ、クラウド事業者には送信されません。";
+"Runs Qwen3-ASR-1.7B on the Mini PC GPU through the secure local SSH tunnel." = "安全なローカル SSH トンネル経由で Mini PC の GPU 上に Qwen3-ASR-1.7B を実行します。";
+"Current route" = "現在の翻訳方向";
+"Latest caption" = "最新の字幕";
+"Start a session to see live captions here." = "同時通訳を開始すると、字幕がここに表示されます。";
+"Open Control Center" = "コントロールセンターを開く";
+"Context AI" = "コンテキスト AI";
+"Apple only" = "Apple のみ";
+"Translation quality" = "翻訳品質";
+"Context AI shows an Apple draft first, then improves final subtitles on your Mini PC." = "まず Apple の下書きを表示し、その後 Mini PC が最終字幕を改善します。";
+"Last ASR processing" = "直近の認識処理";
+"Last ASR queue" = "直近の認識待ち";
+"Last translation" = "直近の翻訳";
+"Translation" = "翻訳";
+
+"Back to latest" = "最新に戻る";
+
+/* Shared permissions page */
+"Permissions" = "アクセス権";
+"Choose the permissions for your audio source. You can change access at any time in System Settings." = "音声入力に合わせてアクセス権を設定します。システム設定でいつでも変更できます。";

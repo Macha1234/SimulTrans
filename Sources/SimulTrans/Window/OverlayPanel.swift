@@ -4,8 +4,7 @@ final class OverlayPanel: NSPanel {
     init(contentRect: NSRect) {
         super.init(
             contentRect: contentRect,
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView,
-                        .nonactivatingPanel, .utilityWindow],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -15,19 +14,26 @@ final class OverlayPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         titleVisibility = .hidden
         titlebarAppearsTransparent = true
-        isMovableByWindowBackground = true
+        titlebarSeparatorStyle = .none
+        isMovableByWindowBackground = false
         isOpaque = false
         backgroundColor = .clear
+        appearance = NSAppearance(named: .darkAqua)
+        isReleasedWhenClosed = false
         hasShadow = true
         hidesOnDeactivate = false
         animationBehavior = .utilityWindow
+        standardWindowButton(.closeButton)?.isHidden = false
+        standardWindowButton(.miniaturizeButton)?.isHidden = false
+        standardWindowButton(.zoomButton)?.isHidden = false
 
         // Default size and position at bottom-center of screen
         if let screen = NSScreen.main {
             let width = STTheme.overlayWindowSize.width
             let height = STTheme.overlayWindowSize.height
-            let x = (screen.frame.width - width) / 2
-            let y = screen.frame.height * 0.05
+            let visibleFrame = screen.visibleFrame
+            let x = visibleFrame.midX - width / 2
+            let y = visibleFrame.minY + max(28, visibleFrame.height * 0.05)
             setFrame(NSRect(x: x, y: y, width: width, height: height), display: true)
             minSize = STTheme.overlayMinSize
         }

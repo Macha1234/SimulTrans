@@ -9,6 +9,23 @@ struct RecognitionUpdate: Sendable {
     let text: String
     let isFinal: Bool
     let segments: [RecognitionSegment]
+    let timing: RecognitionTiming?
+
+    init(text: String,
+         isFinal: Bool,
+         segments: [RecognitionSegment],
+         timing: RecognitionTiming? = nil) {
+        self.text = text
+        self.isFinal = isFinal
+        self.segments = segments
+        self.timing = timing
+    }
+}
+
+struct RecognitionTiming: Sendable {
+    let utteranceDuration: TimeInterval
+    let queueDuration: TimeInterval
+    let processingDuration: TimeInterval
 }
 
 struct RecognitionSegment: Sendable {
@@ -49,8 +66,11 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
     private var converterInputSignature: String?
     private var usingModernSpeechPipeline = false
     private var modernSpeechPipeline: Any?
+    private var localSpeechRecognizer: LocalSpeechRecognizer?
 
     private let _isRunningAtomic = OSAllocatedUnfairLock(initialState: false)
+    private let startupRunID = OSAllocatedUnfairLock<UUID?>(initialState: nil)
+    private let resultRunID = OSAllocatedUnfairLock<UUID?>(initialState: nil)
     private let bufferedAudioState = OSAllocatedUnfairLock(initialState: BufferedAudioState())
     var isRunning: Bool {
         _isRunningAtomic.withLock { $0 }
@@ -77,13 +97,17 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
         case microphone
     }
 
-    func start(locale: Locale, source: AudioSource = .system) {
+    func start(locale: Locale, source: AudioSource = .system, engine: RecognitionEngine = .appleSpeech) {
+        let runID = UUID()
+        startupRunID.withLock { $0 = runID }
+        resultRunID.withLock { $0 = runID }
         Task.detached { [weak self] in
-            await self?.doStart(locale: locale, source: source)
+            await self?.doStart(locale: locale, source: source, engine: engine, runID: runID)
         }
     }
 
     func stop() {
+        startupRunID.withLock { $0 = nil }
         _isRunningAtomic.withLock { $0 = false }
         resetAudioActivityTracking()
         resetBufferedAudio()
@@ -91,6 +115,8 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
         if #available(macOS 26.0, *), usingModernSpeechPipeline {
             stopModernSpeechPipeline()
         }
+        localSpeechRecognizer?.stop()
+        localSpeechRecognizer = nil
 
         recognitionTask?.cancel()
         recognitionTask = nil
@@ -111,17 +137,38 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
 
     // MARK: - Start (runs detached)
 
-    private func doStart(locale: Locale, source: AudioSource) async {
+    private func doStart(locale: Locale,
+                         source: AudioSource,
+                         engine: RecognitionEngine,
+                         runID: UUID) async {
+        guard isCurrentStartupRun(runID) else { return }
         resetAudioActivityTracking()
         resetBufferedAudio()
         analyzerFormat = nil
         audioConverter = nil
         converterInputSignature = nil
         usingModernSpeechPipeline = false
+        localSpeechRecognizer = nil
 
-        if #available(macOS 26.0, *), SpeechTranscriber.isAvailable {
+        if engine.isLocalASR {
+            let localRecognizer = LocalSpeechRecognizer(engine: engine, locale: locale)
+            localRecognizer.onResult = { [weak self] update in
+                guard let self, self.isCurrentResultRun(runID) else { return }
+                self.onResult?(update)
+            }
+            localRecognizer.onError = { [weak self] message in
+                guard let self, self.isCurrentResultRun(runID) else { return }
+                self.onError?(message)
+            }
+            localSpeechRecognizer = localRecognizer
+            print("[SimulTrans] Local ASR pipeline selected: \(engine.displayName)")
+        } else if #available(macOS 26.0, *), SpeechTranscriber.isAvailable {
             do {
                 try await startModernSpeechPipeline(locale: locale)
+                guard isCurrentStartupRun(runID) else {
+                    stopModernSpeechPipeline()
+                    return
+                }
                 usingModernSpeechPipeline = true
                 print("[SimulTrans] SpeechTranscriber pipeline enabled")
             } catch {
@@ -132,7 +179,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             }
         }
 
-        if !usingModernSpeechPipeline {
+        if !engine.isLocalASR && !usingModernSpeechPipeline {
             // 1. Setup speech recognizer
             let recognizer = SFSpeechRecognizer(locale: locale)
             guard let recognizer, recognizer.isAvailable else {
@@ -147,6 +194,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                     cont.resume(returning: status)
                 }
             }
+            guard isCurrentStartupRun(runID) else { return }
             guard status == .authorized else {
                 await MainActor.run { self.onError?("Speech recognition permission has not been granted.") }
                 return
@@ -155,6 +203,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             startRecognitionTask()
         }
 
+        guard isCurrentStartupRun(runID) else { return }
         _isRunningAtomic.withLock { $0 = true }
 
         // 3. Start audio capture
@@ -162,6 +211,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
         case .system:
             do {
                 let hasScreenCaptureAccess = await MainActor.run { CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() }
+                guard isCurrentStartupRun(runID) else { return }
                 guard hasScreenCaptureAccess else {
                     _isRunningAtomic.withLock { $0 = false }
                     await MainActor.run {
@@ -171,6 +221,7 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 }
 
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+                guard isCurrentStartupRun(runID) else { return }
                 guard let display = content.displays.first else {
                     await MainActor.run { self.onError?("No display was found for system audio capture.") }
                     return
@@ -188,6 +239,10 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
                 try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: audioQueue)
                 try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: audioQueue)
                 try await stream.startCapture()
+                guard isCurrentStartupRun(runID) else {
+                    try? await stream.stopCapture()
+                    return
+                }
                 self.stream = stream
                 print("[SimulTrans] System audio capture started")
             } catch {
@@ -207,11 +262,21 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
             }
         }
 
-        if usingModernSpeechPipeline {
+        if engine.isLocalASR {
+            print("[SimulTrans] Recognition started with \(engine.displayName) (locale: \(locale.identifier))")
+        } else if usingModernSpeechPipeline {
             print("[SimulTrans] Recognition started with SpeechTranscriber (locale: \(locale.identifier))")
         } else {
             print("[SimulTrans] Recognition started with SFSpeechRecognizer (locale: \(locale.identifier))")
         }
+    }
+
+    private func isCurrentStartupRun(_ runID: UUID) -> Bool {
+        startupRunID.withLock { $0 == runID }
+    }
+
+    private func isCurrentResultRun(_ runID: UUID) -> Bool {
+        resultRunID.withLock { $0 == runID }
     }
 
     // MARK: - Speech Recognition
@@ -277,9 +342,16 @@ final class SystemAudioRecognizer: NSObject, @unchecked Sendable {
 
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
             guard let self, self.isRunning else { return }
-            if self.usingModernSpeechPipeline {
+            if let localSpeechRecognizer = self.localSpeechRecognizer {
                 guard let bufferCopy = self.copyPCMBuffer(buffer) else { return }
+                self.audioQueue.async {
+                    localSpeechRecognizer.append(bufferCopy)
+                }
+            } else if self.usingModernSpeechPipeline {
+                guard let bufferCopy = self.copyPCMBuffer(buffer) else { return }
+                let level = self.audioLevel(for: bufferCopy)
                 self.audioQueue.async { [weak self] in
+                    self?.handleAudioActivity(level: level)
                     self?.submitBufferToModernSpeechPipeline(bufferCopy)
                 }
             } else {
@@ -623,7 +695,10 @@ extension SystemAudioRecognizer: SCStreamOutput {
             memcpy(dest[0], dataPointer, min(dataLength, lengthAtOffset))
         }
 
-        if usingModernSpeechPipeline {
+        if let localSpeechRecognizer {
+            localSpeechRecognizer.append(pcmBuffer)
+        } else if usingModernSpeechPipeline {
+            handleAudioActivity(level: audioLevel(for: pcmBuffer))
             submitBufferToModernSpeechPipeline(pcmBuffer)
         } else {
             storeBufferedAudio(pcmBuffer)

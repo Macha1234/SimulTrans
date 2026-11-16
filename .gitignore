@@ -4,3 +4,5 @@
 dist/
 *.dmg
 __pycache__/
+.claude/
+/deploy/

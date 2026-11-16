@@ -1,11 +1,17 @@
 import SwiftUI
 import Translation
 
+/// A video-first caption surface. The TranslationSession stays attached to this
+/// root view while users switch between compact and transcript layouts.
 struct OverlayContentView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     var onExport: (() -> Void)?
+    var onHide: (() -> Void)?
+    var onTranslationReady: (() -> Void)?
 
-    private let timeFmt: DateFormatter = {
+
+    private let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         return formatter
@@ -15,291 +21,234 @@ struct OverlayContentView: View {
         @Bindable var appState = appState
 
         ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(STTheme.bg.opacity(panelOpacity))
-                .background(.ultraThinMaterial.opacity(panelOpacity * 0.92))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(STTheme.rule.opacity(panelOpacity), lineWidth: 1)
-                )
+            glassBackground
+                .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                header
-                columnHeader
+            captionHistory
+                .padding(.top, 44)
 
-                ScrollViewReader { proxy in
-                    ScrollView(showsIndicators: false) {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            if appState.transcriptEntries.isEmpty && appState.currentOriginalText.isEmpty {
-                                standbyView()
-                                    .id("standby")
-                            } else {
-                                ForEach(appState.transcriptEntries) { entry in
-                                    entryView(entry: entry)
-                                        .id(entry.id)
-                                }
-
-                                if !appState.currentOriginalText.isEmpty {
-                                    liveEntryView()
-                                        .id("live")
-                                } else if appState.isRunning {
-                                    listeningStateView()
-                                        .id("listening")
-                                }
-                            }
-                        }
-                    }
-                    .onChange(of: appState.currentOriginalText) {
-                        guard !appState.currentOriginalText.isEmpty else { return }
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            proxy.scrollTo("live", anchor: .bottom)
-                        }
-                    }
-                    .onChange(of: appState.transcriptEntries.count) {
-                        guard let last = appState.transcriptEntries.last else { return }
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            overlayChrome
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .preferredColorScheme(appState.appearancePreference.colorScheme)
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .preferredColorScheme(.dark)
         .environment(\.locale, appState.overlayInterfaceLocale)
         .translationTask(appState.translationConfig) { session in
             appState.translationSession = session
+            onTranslationReady?()
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(appState.isRunning ? STTheme.green : STTheme.inkTertiary)
-                .frame(width: 6, height: 6)
-
-            Text(appState.isRunning ? "ON AIR" : "STANDBY", bundle: .module)
-                .font(STTheme.monoFont(size: 9))
-                .tracking(1.7)
-                .foregroundStyle(STTheme.inkSecondary)
-
-            if appState.isRunning, appState.sessionStartedAt != nil {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage)) · \(AppState.formatElapsed(from: appState.sessionStartedAt, now: context.date))")
-                        .font(STTheme.monoFont(size: 9, weight: .regular))
-                        .foregroundStyle(STTheme.inkTertiary)
-                }
+    private var glassBackground: some View {
+        ZStack {
+            if reduceTransparency {
+                STTheme.overlayBackground
             } else {
-                Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage))")
-                    .font(STTheme.monoFont(size: 9, weight: .regular))
-                    .foregroundStyle(STTheme.inkTertiary)
+                STVisualEffectMaterial(material: .hudWindow)
+                    .opacity(panelOpacity)
             }
 
-            Spacer()
+            STTheme.overlayBackground.opacity(panelOpacity * 0.12)
 
-            Text("\(appState.transcriptEntries.count) entries", bundle: .module)
-                .font(STTheme.monoFont(size: 9, weight: .regular))
-                .tracking(1.2)
-                .foregroundStyle(STTheme.inkTertiary)
-                .textCase(.uppercase)
+            LinearGradient(
+                colors: [.white.opacity(0.10), .white.opacity(0.025), .clear],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [.white.opacity(0.28), .white.opacity(0.07), .white.opacity(0.14)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.75
+                )
+        }
+        .allowsHitTesting(false)
+    }
 
-            if !appState.transcriptEntries.isEmpty {
-                Button(action: { onExport?() }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(STTheme.inkSecondary)
+    // All layouts share the same retained history and scroll policy.
+    private var captionHistory: some View {
+        CaptionHistoryScrollView(
+            content: AnyView(historyRows),
+            followsLatest: appState.captionScroll.followsLatest,
+            onUserScroll: { appState.captionScroll.userDidScroll() }
+        )
+        .overlay(alignment: .bottomTrailing) {
+            if !appState.captionScroll.followsLatest {
+                Button {
+                    appState.captionScroll.resume()
+                } label: {
+                    Label(appState.localizedOverlayString("Back to latest"), systemImage: "arrow.down.to.line")
+                        .font(.system(size: 12, weight: .semibold))
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(.regularMaterial, in: Capsule())
                 }
                 .buttonStyle(.plain)
-                .help(overlayLocalizedString("Export transcript"))
+                .padding(12)
+                .accessibilityIdentifier("caption-back-to-latest")
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background(STTheme.bg.opacity(0.72 * panelOpacity))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(STTheme.rule.opacity(panelOpacity))
-                .frame(height: 1)
-        }
     }
 
-    private var columnHeader: some View {
-        HStack(spacing: 0) {
-            Text("TIME", bundle: .module)
-                .frame(width: timeColumnWidth, alignment: .leading)
-
-            Text("SOURCE ABOVE · \(languageName(for: appState.sourceLanguage))", bundle: .module)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 10)
-
-            Text("TRANSLATION · \(languageName(for: appState.targetLanguage))", bundle: .module)
-                .foregroundStyle(STTheme.accent)
+    private var historyRows: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if appState.transcriptEntries.isEmpty && appState.currentOriginalText.isEmpty {
+                listeningPlaceholder.padding(22)
+            }
+            ForEach(appState.transcriptEntries) { entry in
+                captionRow(source: entry.originalText, translation: entry.translatedText,
+                           timestamp: entry.timestamp, live: false)
+            }
+            if !appState.currentOriginalText.isEmpty {
+                captionRow(source: appState.currentOriginalText,
+                           translation: appState.currentTranslatedText.isEmpty ? nil : appState.currentTranslatedText,
+                           timestamp: nil, live: true)
+            }
         }
-        .font(STTheme.monoFont(size: 9))
-        .tracking(1.2)
-        .foregroundStyle(STTheme.inkTertiary)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(STTheme.rule.opacity(panelOpacity))
-                .frame(height: 1)
-        }
+        .textSelection(.enabled)
     }
 
-    @ViewBuilder
-    private func entryView(entry: TranscriptEntry) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            Text(timeFmt.string(from: entry.timestamp))
-                .font(STTheme.monoFont(size: 9, weight: .regular))
-                .foregroundStyle(STTheme.inkTertiary)
-                .frame(width: timeColumnWidth, alignment: .leading)
-                .padding(.top, 3)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.originalText)
-                    .font(STTheme.bodyFont(size: sourceFontSize))
-                    .foregroundStyle(STTheme.inkSecondary)
-                    .lineSpacing(2)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text(entry.translatedText ?? "…")
-                    .font(STTheme.displayFont(size: translationFontSize, weight: .medium))
-                    .foregroundStyle(entry.translatedText == nil ? STTheme.inkTertiary : STTheme.ink)
+    private func captionRow(source: String, translation: String?, timestamp: Date?, live: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            if appState.overlayLayoutMode == .transcript {
+                Text(timestamp.map(timeFormatter.string(from:)) ?? "•••")
+                    .font(STTheme.monoFont(size: 10))
+                    .foregroundStyle(STTheme.overlayTertiary)
+                    .frame(width: 52, alignment: .leading)
+                    .padding(.top, 4)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                if appState.overlayLayoutMode != .subtitles {
+                    Text(source)
+                        .font(.system(size: max(14, appState.fontSize * 0.65)))
+                        .foregroundStyle(STTheme.overlaySecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text(translation ?? appState.localizedOverlayString("Translating…"))
+                    .font(.system(size: appState.fontSize, weight: .semibold))
+                    .foregroundStyle(translation == nil ? STTheme.overlayTertiary : STTheme.overlayPrimary)
                     .lineSpacing(3)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .shadow(color: .black.opacity(0.30), radius: 2, y: 1)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.leading, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(STTheme.rule.opacity(panelOpacity))
-                .frame(height: 1)
-        }
+        .padding(.horizontal, 24).padding(.vertical, 18)
+        .background(live ? STTheme.liveStatus.opacity(0.06) : .clear)
+        .overlay(alignment: .bottom) { Rectangle().fill(STTheme.overlayRule).frame(height: 1) }
     }
 
-    @ViewBuilder
-    private func liveEntryView() -> some View {
-        ZStack(alignment: .leading) {
-            STTheme.accentSoft.opacity(panelOpacity)
+    private var listeningPlaceholder: some View {
+        HStack(spacing: 12) {
+            CompactWaveform(active: appState.isRunning)
 
-            Rectangle()
-                .fill(STTheme.accent.opacity(panelOpacity))
-                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(appState.isRunning
+                     ? appState.localizedOverlayString("Listening for speech…")
+                     : appState.localizedOverlayString("Ready when you are"))
+                    .font(.system(size: max(16, appState.fontSize * 0.76), weight: .semibold))
+                    .foregroundStyle(STTheme.overlaySecondary)
 
-            HStack(alignment: .top, spacing: 0) {
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(STTheme.accent)
-                        .frame(width: 5, height: 5)
-                    Text(timeFmt.string(from: Date()))
-                }
-                .font(STTheme.monoFont(size: 9))
-                .foregroundStyle(STTheme.accent)
-                .frame(width: timeColumnWidth, alignment: .leading)
-                .padding(.top, 3)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    (
-                        Text(appState.currentOriginalText)
-                            .font(STTheme.bodyFont(size: sourceFontSize))
-                            .foregroundStyle(STTheme.inkSecondary)
-                        +
-                        Text("▍")
-                            .font(STTheme.bodyFont(size: sourceFontSize))
-                            .foregroundStyle(STTheme.inkSecondary.opacity(0.45))
-                    )
-                    .lineSpacing(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text(appState.currentTranslatedText.isEmpty ? "…" : appState.currentTranslatedText)
-                        .font(STTheme.displayFont(size: translationFontSize, weight: .medium))
-                        .foregroundStyle(appState.currentTranslatedText.isEmpty ? STTheme.inkTertiary : STTheme.ink)
-                        .lineSpacing(3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.leading, 10)
+                Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage))")
+                    .font(STTheme.monoFont(size: 10))
+                    .foregroundStyle(STTheme.overlayTertiary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(STTheme.rule.opacity(panelOpacity))
-                .frame(height: 1)
-        }
+        .frame(maxWidth: .infinity, minHeight: 140, alignment: .leading)
     }
 
-    @ViewBuilder
-    private func listeningStateView() -> some View {
-        HStack(alignment: .center, spacing: 0) {
-            Text("LIVE", bundle: .module)
-                .font(STTheme.monoFont(size: 9))
-                .foregroundStyle(STTheme.green)
-                .frame(width: timeColumnWidth, alignment: .leading)
+    // MARK: - Persistent toolbar
 
-            HStack(spacing: 8) {
+    private var overlayChrome: some View {
+        VStack {
+            HStack(spacing: 9) {
                 Circle()
-                    .fill(STTheme.green)
-                    .frame(width: 5, height: 5)
-                    .modifier(PulseModifier())
+                    .fill(appState.isRunning ? STTheme.liveStatus : STTheme.overlayTertiary)
+                    .frame(width: 6, height: 6)
 
-                Text("Waiting for the next speaker…", bundle: .module)
-                    .font(STTheme.displayItalicFont(size: 18, weight: .regular))
-                    .foregroundStyle(STTheme.inkSecondary)
+                Text(appState.isRunning
+                     ? appState.localizedOverlayString("Live")
+                     : appState.localizedOverlayString("Ready"))
+                    .font(STTheme.bodyFont(size: 11, weight: .semibold))
+                    .foregroundStyle(STTheme.overlaySecondary)
+
+                Text("\(languageCode(for: appState.sourceLanguage)) → \(languageCode(for: appState.targetLanguage))")
+                    .font(STTheme.monoFont(size: 10, weight: .regular))
+                    .foregroundStyle(STTheme.overlayTertiary)
+
+                Spacer()
+
+                Group {
+                    ForEach(AppState.OverlayLayoutMode.allCases) { mode in
+                        Button {
+                            appState.overlayLayoutMode = mode
+                        } label: {
+                            Image(systemName: icon(for: mode))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(mode == appState.overlayLayoutMode
+                                                 ? STTheme.overlayPrimary
+                                                 : STTheme.overlayTertiary)
+                                .frame(width: 30, height: 30)
+                                .background(RoundedRectangle(cornerRadius: 9).fill(mode == appState.overlayLayoutMode
+                                                          ? Color.white.opacity(0.14)
+                                                          : Color.clear))
+                        }
+                        .buttonStyle(.plain)
+                        .help(appState.localizedOverlayString(mode.localizationKey))
+                        .accessibilityLabel(appState.localizedOverlayString(mode.localizationKey))
+                        .accessibilityAddTraits(mode == appState.overlayLayoutMode ? .isSelected : [])
+                    }
+
+                    if !appState.transcriptEntries.isEmpty {
+                        Button(action: { onExport?() }) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(STTheme.overlaySecondary)
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(.plain)
+                        .help(appState.localizedOverlayString("Export transcript"))
+                        .accessibilityLabel(appState.localizedOverlayString("Export transcript"))
+                    }
+
+                    Button(action: { onHide?() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(STTheme.overlaySecondary)
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(.plain)
+                    .help(appState.localizedOverlayString("Hide captions"))
+                    .accessibilityLabel(appState.localizedOverlayString("Hide captions"))
+                }
             }
-            .padding(.leading, 10)
+            .padding(.horizontal, 18)
+            .frame(height: 44)
+            .background(Color.white.opacity(0.035))
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(STTheme.overlayRule).frame(height: 1)
+            }
 
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(STTheme.rule.opacity(panelOpacity))
-                .frame(height: 1)
-        }
+
     }
-
-    @ViewBuilder
-    private func standbyView() -> some View {
-        VStack(spacing: 14) {
-            WaveformPlaceholder()
-                .foregroundStyle(STTheme.inkTertiary)
-
-            Text("waiting for someone to speak…", bundle: .module)
-                .font(STTheme.displayItalicFont(size: 18, weight: .regular))
-                .foregroundStyle(STTheme.inkSecondary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 140, maxHeight: .infinity)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 24)
-    }
-
-    private var timeColumnWidth: CGFloat { 58 }
 
     private var panelOpacity: Double {
-        min(max(appState.overlayOpacity, 0), 1)
+        min(max(appState.overlayOpacity, 0.35), 1)
     }
 
-    private var sourceFontSize: CGFloat {
-        max(10, appState.fontSize * 0.68)
-    }
-
-    private var translationFontSize: CGFloat {
-        max(18, appState.fontSize * 1.28)
-    }
-
-    private func languageName(for selection: Locale.Language) -> String {
-        AppState.localizedDisplayName(for: selection, in: appState.overlayInterfaceLocale)
+    private func icon(for mode: AppState.OverlayLayoutMode) -> String {
+        switch mode {
+        case .subtitles: return "captions.bubble"
+        case .bilingual: return "text.bubble"
+        case .transcript: return "list.bullet.rectangle"
+        }
     }
 
     private func languageCode(for selection: Locale.Language) -> String {
@@ -312,33 +261,23 @@ struct OverlayContentView: View {
         if identifier.hasPrefix("es") { return "ES" }
         if identifier.hasPrefix("fr") { return "FR" }
         if identifier.hasPrefix("de") { return "DE" }
-        if identifier.hasPrefix("it") { return "IT" }
-        if identifier.hasPrefix("ru") { return "RU" }
-        if identifier.hasPrefix("ar") { return "AR" }
         return selection.minimalIdentifier.prefix(2).uppercased()
     }
-
-    private func overlayLocalizedString(_ key: String) -> String {
-        appState.localizedOverlayString(key)
-    }
 }
 
-private struct WaveformPlaceholder: View {
+private struct CompactWaveform: View {
+    let active: Bool
+
     var body: some View {
-        HStack(alignment: .center, spacing: 4) {
-            ForEach(0..<18, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(STTheme.inkTertiary.opacity(0.28 + Double(index % 5) * 0.1))
-                    .frame(width: 3, height: CGFloat(16 + ((index * 11) % 22)))
+        HStack(alignment: .center, spacing: 3) {
+            ForEach(0..<10, id: \.self) { index in
+                Capsule()
+                    .fill(active ? STTheme.liveStatus : STTheme.overlayTertiary)
+                    .frame(width: 3, height: pattern[index])
             }
         }
-        .frame(height: 38)
+        .frame(height: 30)
     }
-}
 
-private struct PulseModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .opacity(0.85)
-    }
+    private let pattern: [CGFloat] = [7, 15, 10, 24, 17, 28, 13, 21, 9, 16]
 }

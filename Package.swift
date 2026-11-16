@@ -18,5 +18,6 @@ let package = Package(
                 .linkedFramework("Translation"),
             ]
         ),
+        .testTarget(name: "SimulTransTests", dependencies: ["SimulTrans"]),
     ]
 )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -31,7 +32,7 @@ def create_icns(image: Image.Image, output_path: Path) -> None:
         iconset_dir = Path(tmpdir) / "AppIcon.iconset"
         iconset_dir.mkdir(parents=True, exist_ok=True)
 
-        sizes = [16, 32, 64, 128, 256, 512, 1024]
+        sizes = [16, 32, 128, 256, 512]
         for size in sizes:
             resized = image.resize((size, size), Image.LANCZOS)
             resized.save(iconset_dir / f"icon_{size}x{size}.png")
@@ -55,7 +56,24 @@ def main() -> None:
     image.save(preview_path)
     print(f"Saved preview: {preview_path}")
 
-    icns_path = RESOURCES_DIR / "AppIcon.icns"
+    native_icon = ROOT_DIR / "assets" / "logo" / "AppIconGlass.icon"
+    if native_icon.is_dir():
+        # Native icon stacks prevent macOS from wrapping legacy artwork in a gray tile.
+        shutil.copyfile(preview_path, native_icon / "Assets" / "artwork.png")
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            subprocess.run([
+                "xcrun", "actool", str(native_icon), "--compile", str(output),
+                "--platform", "macosx", "--minimum-deployment-target", "15.0",
+                "--app-icon", "AppIconGlass", "--include-all-app-icons",
+                "--output-partial-info-plist", str(output / "partial.plist"),
+            ], check=True)
+            for name in ("AppIconGlass.icns", "Assets.car"):
+                shutil.copyfile(output / name, RESOURCES_DIR / name)
+        print("Generated native icon stack and legacy fallback")
+        return
+
+    icns_path = RESOURCES_DIR / "AppIconGlass.icns"
     create_icns(image, icns_path)
     print(f"Generated icon: {icns_path}")
 
